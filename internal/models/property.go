@@ -29,3 +29,18 @@ type PropertyFilter struct {
 	MinPriceUSD float64
 	MaxPriceUSD float64
 }
+
+type PropertyDetails struct {
+	TipoPropiedad      string
+	Ubicacion          string
+	Dormitorios        int
+	Banios             int
+	Antiguedad         string
+	SuperficieCubierta float64
+	SuperficieTotal    float64
+	Frente             float64
+	Fondo              float64
+	Ambientes          int
+	Expensas           float64
+	Descripcion        string
+}

@@ -156,3 +156,91 @@ func locationToTokko(location string) string {
 	}
 	return "26540" // Default a Lanús
 }
+
+// GetPropertyDetails obtiene los detalles de una propiedad específica
+func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.PropertyDetails, error) {
+	fmt.Printf("🔍 Intentando obtener detalles de: %s\n", url)
+
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", false),
+		chromedp.Flag("disable-gpu", true),
+		chromedp.Flag("no-sandbox", true),
+		chromedp.Flag("disable-dev-shm-usage", true),
+	)
+
+	allocCtx, cancel := chromedp.NewExecAllocator(ctx, opts...)
+	defer cancel()
+
+	taskCtx, cancel := chromedp.NewContext(allocCtx)
+	defer cancel()
+
+	var details models.PropertyDetails
+
+	err := chromedp.Run(taskCtx,
+		chromedp.Navigate(url),
+		chromedp.Sleep(2*time.Second),
+		chromedp.Evaluate(`
+			(() => {
+				// Función auxiliar para extraer números
+				function extractNumber(text) {
+					if (!text) return 0;
+					const match = text.match(/[\d,.]+/);
+					return match ? parseFloat(match[0].replace(',', '.')) : 0;
+				}
+
+				// Función para buscar valor en la lista
+				function findValue(selector, label) {
+					const items = document.querySelectorAll(selector + ' li');
+					for (const item of items) {
+						if (item.textContent.toLowerCase().includes(label.toLowerCase())) {
+							return item.textContent.split(':')[1]?.trim() || item.textContent.split('i')[1]?.trim() || '';
+						}
+					}
+					return '';
+				}
+
+				// Extraer datos
+				const tipoPropiedad = document.querySelector('#ficha_detalle_cuerpo .ficha_detalle_item:first-child')?.textContent.split('Tipo de Propiedad')[1]?.trim() || '';
+				const ubicacion = document.querySelector('#ficha_detalle_cuerpo .ficha_detalle_item:nth-child(2)')?.textContent.split('Ubicación')[1]?.trim() || '';
+				
+				const dormitorios = extractNumber(findValue('#lista_informacion_basica', 'Dormitorios'));
+				const banios = extractNumber(findValue('#lista_informacion_basica', 'Baños'));
+				const antiguedad = findValue('#lista_informacion_basica', 'Antigüedad');
+				const ambientes = extractNumber(findValue('#lista_informacion_basica', 'Ambientes'));
+				const expensas = extractNumber(findValue('#lista_informacion_basica', 'Expensas'));
+
+				const superficieCubierta = extractNumber(findValue('#lista_superficies', 'Cubierta'));
+				const frente = extractNumber(findValue('#lista_superficies', 'Frente'));
+				const fondo = extractNumber(findValue('#lista_superficies', 'Fondo'));
+
+				const descripcion = document.querySelector('#prop-desc')?.textContent.trim() || '';
+
+				console.log('Datos extraídos:', {
+					tipoPropiedad, ubicacion, dormitorios, banios, antiguedad,
+					superficieCubierta, frente, fondo, ambientes, expensas, descripcion
+				});
+
+				return {
+					tipoPropiedad,
+					ubicacion,
+					dormitorios,
+					banios,
+					antiguedad,
+					superficieCubierta,
+					frente,
+					fondo,
+					ambientes,
+					expensas,
+					descripcion
+				};
+			})()
+		`, &details),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("error extrayendo detalles: %v (url: %s)", err, url)
+	}
+
+	fmt.Printf("✓ Extracción completada: %+v\n", details)
+	return &details, nil
+}

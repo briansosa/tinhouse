@@ -63,8 +63,13 @@ func (db *DB) CreateBusqueda(b *Busqueda) error {
 // CreatePropiedad inserta una nueva propiedad en la base de datos
 func (db *DB) CreatePropiedad(p *Propiedad) error {
 	query := `
-        INSERT INTO propiedades (inmobiliaria_id, codigo, titulo, precio, direccion, url, imagen_url, fecha_scraping)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO propiedades (
+            inmobiliaria_id, codigo, titulo, precio, direccion, url, imagen_url, fecha_scraping,
+            tipo_propiedad, ubicacion, dormitorios, banios, antiguedad, 
+            superficie_cubierta, superficie_total, frente, fondo, ambientes,
+            expensas, descripcion, status
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(codigo) DO UPDATE SET
             titulo = excluded.titulo,
             precio = excluded.precio,
@@ -72,11 +77,27 @@ func (db *DB) CreatePropiedad(p *Propiedad) error {
             url = excluded.url,
             imagen_url = excluded.imagen_url,
             fecha_scraping = excluded.fecha_scraping,
+            tipo_propiedad = excluded.tipo_propiedad,
+            ubicacion = excluded.ubicacion,
+            dormitorios = excluded.dormitorios,
+            banios = excluded.banios,
+            antiguedad = excluded.antiguedad,
+            superficie_cubierta = excluded.superficie_cubierta,
+            superficie_total = excluded.superficie_total,
+            frente = excluded.frente,
+            fondo = excluded.fondo,
+            ambientes = excluded.ambientes,
+            expensas = excluded.expensas,
+            descripcion = excluded.descripcion,
+            status = excluded.status,
             updated_at = CURRENT_TIMESTAMP
         RETURNING id, created_at, updated_at`
 
 	return db.QueryRow(query,
 		p.InmobiliariaID, p.Codigo, p.Titulo, p.Precio, p.Direccion, p.URL, p.ImagenURL, p.FechaScraping,
+		p.TipoPropiedad, p.Ubicacion, p.Dormitorios, p.Banios, p.Antiguedad,
+		p.SuperficieCubierta, p.SuperficieTotal, p.Frente, p.Fondo, p.Ambientes,
+		p.Expensas, p.Descripcion, p.Status,
 	).Scan(&p.ID, &p.CreatedAt, &p.UpdatedAt)
 }
 
@@ -314,4 +335,108 @@ func (db *DB) CreatePropiedadAndLink(p *Propiedad, busquedaID int64) error {
 	}
 
 	return nil
+}
+
+// GetPropiedadesSinDetalles retorna las propiedades que no tienen detalles completos
+func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
+	query := `
+		SELECT 
+			id, inmobiliaria_id, codigo, titulo, precio, direccion, url, imagen_url, 
+			fecha_scraping, created_at, updated_at,
+			tipo_propiedad, ubicacion, dormitorios, banios, antiguedad,
+			superficie_cubierta, superficie_total, frente, fondo, ambientes,
+			expensas, descripcion, status
+		FROM propiedades
+		WHERE status = 'pending'
+		ORDER BY created_at DESC`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error consultando propiedades sin detalles: %v", err)
+	}
+	defer rows.Close()
+
+	var propiedades []Propiedad
+	for rows.Next() {
+		var p Propiedad
+		err := rows.Scan(
+			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
+			&p.URL, &p.ImagenURL, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
+			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
+			&p.SuperficieCubierta, &p.SuperficieTotal, &p.Frente, &p.Fondo, &p.Ambientes,
+			&p.Expensas, &p.Descripcion, &p.Status,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
+		}
+		propiedades = append(propiedades, p)
+	}
+
+	return propiedades, nil
+}
+
+// UpdatePropiedadDetalles actualiza solo los campos de detalles de una propiedad
+func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
+	query := `
+		UPDATE propiedades 
+		SET 
+			tipo_propiedad = ?,
+			ubicacion = ?,
+			dormitorios = ?,
+			banios = ?,
+			antiguedad = ?,
+			superficie_cubierta = ?,
+			superficie_total = ?,
+			frente = ?,
+			fondo = ?,
+			ambientes = ?,
+			expensas = ?,
+			descripcion = ?,
+			status = ?,
+			updated_at = CURRENT_TIMESTAMP,
+			fecha_scraping = ?
+		WHERE id = ?
+		RETURNING created_at, updated_at`
+
+	err := db.QueryRow(query,
+		p.TipoPropiedad,
+		p.Ubicacion,
+		p.Dormitorios,
+		p.Banios,
+		p.Antiguedad,
+		p.SuperficieCubierta,
+		p.SuperficieTotal,
+		p.Frente,
+		p.Fondo,
+		p.Ambientes,
+		p.Expensas,
+		p.Descripcion,
+		p.Status,
+		p.FechaScraping,
+		p.ID,
+	).Scan(&p.CreatedAt, &p.UpdatedAt)
+
+	if err != nil {
+		return fmt.Errorf("error actualizando detalles de propiedad %d: %v", p.ID, err)
+	}
+
+	return nil
+}
+
+func (db *DB) GetInmobiliariaByID(id int64) (*Inmobiliaria, error) {
+	query := `
+		SELECT id, nombre, url, sistema, zona, rating, direccion, telefono, created_at, updated_at
+		FROM inmobiliarias
+		WHERE id = ?`
+
+	var i Inmobiliaria
+	err := db.QueryRow(query, id).Scan(
+		&i.ID, &i.Nombre, &i.URL, &i.Sistema, &i.Zona, &i.Rating,
+		&i.Direccion, &i.Telefono, &i.CreatedAt, &i.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error obteniendo inmobiliaria %d: %v", id, err)
+	}
+
+	return &i, nil
 }

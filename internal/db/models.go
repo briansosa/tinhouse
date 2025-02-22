@@ -41,6 +41,21 @@ type Propiedad struct {
 	FechaScraping  time.Time `db:"fecha_scraping"`
 	CreatedAt      time.Time `db:"created_at"`
 	UpdatedAt      time.Time `db:"updated_at"`
+
+	// Campos que pueden ser NULL
+	TipoPropiedad      *string  `db:"tipo_propiedad"`
+	Ubicacion          *string  `db:"ubicacion"`
+	Dormitorios        *int     `db:"dormitorios"`
+	Banios             *int     `db:"banios"`
+	Antiguedad         *string  `db:"antiguedad"`
+	SuperficieCubierta *float64 `db:"superficie_cubierta"`
+	SuperficieTotal    *float64 `db:"superficie_total"`
+	Frente             *float64 `db:"frente"`
+	Fondo              *float64 `db:"fondo"`
+	Ambientes          *int     `db:"ambientes"`
+	Expensas           *float64 `db:"expensas"`
+	Descripcion        *string  `db:"descripcion"`
+	Status             string   `db:"status"` // Este no puede ser NULL por el DEFAULT
 }
 
 // BusquedaPropiedad representa la relación entre búsquedas y propiedades
