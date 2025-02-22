@@ -50,7 +50,18 @@ CREATE TABLE IF NOT EXISTS busquedas_propiedades (
     FOREIGN KEY (propiedad_id) REFERENCES propiedades(id)
 );
 
+-- Tabla de calificaciones de propiedades
+CREATE TABLE IF NOT EXISTS property_ratings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    property_id INTEGER NOT NULL,
+    rating TEXT NOT NULL CHECK(rating IN ('like', 'dislike')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (property_id) REFERENCES propiedades(id),
+    UNIQUE(property_id)
+);
+
 -- Índices para mejorar performance
 CREATE INDEX IF NOT EXISTS idx_propiedades_codigo ON propiedades(codigo);
 CREATE INDEX IF NOT EXISTS idx_propiedades_inmobiliaria ON propiedades(inmobiliaria_id);
-CREATE INDEX IF NOT EXISTS idx_busquedas_fecha ON busquedas(created_at); 
+CREATE INDEX IF NOT EXISTS idx_busquedas_fecha ON busquedas(created_at);
+CREATE INDEX IF NOT EXISTS idx_property_ratings_property_id ON property_ratings(property_id); 

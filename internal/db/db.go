@@ -33,7 +33,9 @@ func New(dbPath string) (*DB, error) {
 		return nil, err
 	}
 
-	return &DB{db}, nil
+	database := &DB{db}
+
+	return database, nil
 }
 
 // CreateInmobiliaria inserta una nueva inmobiliaria en la base de datos
@@ -460,4 +462,132 @@ func (db *DB) GetInmobiliariaByID(id int64) (*Inmobiliaria, error) {
 	}
 
 	return &i, nil
+}
+
+// GetUnratedProperties retorna las propiedades que no tienen calificación
+func (db *DB) GetUnratedProperties() ([]Propiedad, error) {
+	query := `
+		SELECT 
+			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
+			p.url, p.imagen_url, p.fecha_scraping, p.created_at, p.updated_at,
+			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
+			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
+			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
+			p.situacion, p.expensas, p.descripcion, p.status
+		FROM propiedades p
+		WHERE NOT EXISTS (
+			SELECT 1 
+			FROM property_ratings r 
+			WHERE r.property_id = p.id
+		)
+		ORDER BY p.created_at DESC`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error consultando propiedades sin calificar: %v", err)
+	}
+	defer rows.Close()
+
+	var propiedades []Propiedad
+	for rows.Next() {
+		var p Propiedad
+		err := rows.Scan(
+			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
+			&p.URL, &p.ImagenURL, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
+			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
+			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
+			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
+			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
+		}
+		propiedades = append(propiedades, p)
+	}
+
+	return propiedades, nil
+}
+
+// GetLikedProperties retorna las propiedades que tienen like
+func (db *DB) GetLikedProperties() ([]Propiedad, error) {
+	query := `
+		SELECT 
+			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
+			p.url, p.imagen_url, p.fecha_scraping, p.created_at, p.updated_at,
+			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
+			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
+			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
+			p.situacion, p.expensas, p.descripcion, p.status
+		FROM propiedades p
+		INNER JOIN property_ratings r ON r.property_id = p.id
+		WHERE r.rating = 'like'
+		ORDER BY r.created_at DESC`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error consultando propiedades con like: %v", err)
+	}
+	defer rows.Close()
+
+	var propiedades []Propiedad
+	for rows.Next() {
+		var p Propiedad
+		err := rows.Scan(
+			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
+			&p.URL, &p.ImagenURL, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
+			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
+			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
+			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
+			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
+		}
+		propiedades = append(propiedades, p)
+	}
+
+	return propiedades, nil
+}
+
+// RateProperty califica una propiedad como like o dislike
+func (db *DB) RateProperty(propertyID int64, rating string) error {
+	if rating != "like" && rating != "dislike" {
+		return fmt.Errorf("rating inválido: %s", rating)
+	}
+
+	// Verificar si la propiedad existe
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM propiedades WHERE id = ?)", propertyID).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("error verificando propiedad %d: %v", propertyID, err)
+	}
+	if !exists {
+		return fmt.Errorf("la propiedad %d no existe", propertyID)
+	}
+
+	// Verificar estructura de la tabla
+	var tableInfo string
+	err = db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='property_ratings'`).Scan(&tableInfo)
+	if err != nil {
+		return fmt.Errorf("error obteniendo estructura de tabla: %v", err)
+	}
+	fmt.Printf("Estructura de tabla property_ratings: %s\n", tableInfo)
+
+	// Intentar insertar
+	query := `
+		INSERT INTO property_ratings (property_id, rating)
+		VALUES (?, ?)
+		ON CONFLICT(property_id) DO UPDATE SET
+			rating = excluded.rating,
+			created_at = CURRENT_TIMESTAMP`
+
+	result, err := db.Exec(query, propertyID, rating)
+	if err != nil {
+		return fmt.Errorf("error calificando propiedad %d: %v", propertyID, err)
+	}
+
+	rows, _ := result.RowsAffected()
+	fmt.Printf("Filas afectadas: %d\n", rows)
+
+	return nil
 }

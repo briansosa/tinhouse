@@ -68,3 +68,11 @@ type BusquedaPropiedad struct {
 	PropiedadID int64     `db:"propiedad_id"`
 	CreatedAt   time.Time `db:"created_at"`
 }
+
+// PropertyRating representa una calificación de propiedad en la base de datos
+type PropertyRating struct {
+	ID         int64     `db:"id"`
+	PropertyID int64     `db:"property_id"`
+	Rating     string    `db:"rating"` // 'like' o 'dislike'
+	CreatedAt  time.Time `db:"created_at"`
+}
