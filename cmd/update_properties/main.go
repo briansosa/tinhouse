@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -28,13 +29,16 @@ func main() {
 	}
 }
 
+// Función auxiliar para convertir a puntero
+func ptr[T any](v T) *T {
+	return &v
+}
+
 func updateProperties(database *db.DB, testMode bool) error {
 	fmt.Println("🚀 Iniciando proceso de actualización")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	fmt.Println("✓ Contexto creado con timeout de 5 minutos")
+	// Quitamos el timeout global
+	ctx := context.Background()
 
 	// Obtener propiedades pendientes
 	propiedades, err := database.GetPropiedadesSinDetalles()
@@ -74,33 +78,45 @@ func updateProperties(database *db.DB, testMode bool) error {
 
 		// Obtener detalles usando el contexto con timeout
 		scraper := tokko.New(inmobiliaria.URL)
-		details, err := scraper.GetPropertyDetails(ctx, prop.URL)
+		propCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		details, err := scraper.GetPropertyDetails(propCtx, prop.URL)
+		cancel() // Liberamos recursos
+
 		if err != nil {
-			if strings.Contains(err.Error(), "404") {
-				log.Printf("Propiedad no disponible: %s\n", prop.URL)
-				prop.Status = "not_available"
-				noDisponibles++
-			} else {
-				log.Printf("Error obteniendo detalles: %v\n", err)
+			if strings.Contains(err.Error(), "context deadline exceeded") {
+				log.Printf("⌛ Timeout al procesar propiedad: %s, reintentando...\n", prop.URL)
+				// Reintento con más tiempo
+				propCtx, cancel = context.WithTimeout(ctx, 5*time.Minute)
+				details, err = scraper.GetPropertyDetails(propCtx, prop.URL)
+				cancel()
+			}
+			if err != nil {
+				// Manejo de error final
+				log.Printf("❌ Error final al procesar propiedad: %v\n", err)
 				fallidas++
 				continue
 			}
-		} else {
-			// Actualizar propiedad con los detalles
-			prop.TipoPropiedad = &details.TipoPropiedad
-			prop.Ubicacion = &details.Ubicacion
-			prop.Dormitorios = &details.Dormitorios
-			prop.Banios = &details.Banios
-			prop.Antiguedad = &details.Antiguedad
-			prop.SuperficieCubierta = &details.SuperficieCubierta
-			prop.Frente = &details.Frente
-			prop.Fondo = &details.Fondo
-			prop.Ambientes = &details.Ambientes
-			prop.Expensas = &details.Expensas
-			prop.Descripcion = &details.Descripcion
-			prop.Status = "match"
-			actualizadas++
 		}
+
+		// Actualizar propiedad con los detalles
+		prop.TipoPropiedad = ptr(details.TipoPropiedad)
+		prop.Ubicacion = ptr(details.Ubicacion)
+		prop.Dormitorios = ptr(details.Dormitorios)
+		prop.Banios = ptr(details.Banios)
+		prop.Antiguedad = ptr(details.Antiguedad)
+		prop.SuperficieCubierta = ptr(details.SuperficieCubierta)
+		prop.SuperficieTotal = ptr(details.SuperficieTotal)
+		prop.SuperficieTerreno = ptr(details.SuperficieTerreno)
+		prop.Frente = ptr(details.Frente)
+		prop.Fondo = ptr(details.Fondo)
+		prop.Ambientes = ptr(details.Ambientes)
+		prop.Plantas = ptr(details.Plantas)
+		prop.Cocheras = ptr(details.Cocheras)
+		prop.Situacion = ptr(details.Situacion)
+		prop.Expensas = ptr(details.Expensas)
+		prop.Descripcion = ptr(details.Descripcion)
+		prop.Status = "completed"
+		actualizadas++
 
 		prop.FechaScraping = time.Now()
 		if err := database.UpdatePropiedadDetalles(&prop); err != nil {
@@ -109,7 +125,8 @@ func updateProperties(database *db.DB, testMode bool) error {
 			continue
 		}
 
-		time.Sleep(1 * time.Second) // Delay entre requests
+		// Delay variable entre requests
+		time.Sleep(time.Duration(2+rand.Intn(3)) * time.Second)
 	}
 
 	fmt.Printf("\nResumen:\n"+

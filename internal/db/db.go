@@ -343,9 +343,21 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 		SELECT 
 			id, inmobiliaria_id, codigo, titulo, precio, direccion, url, imagen_url, 
 			fecha_scraping, created_at, updated_at,
-			tipo_propiedad, ubicacion, dormitorios, banios, antiguedad,
-			superficie_cubierta, superficie_total, frente, fondo, ambientes,
-			expensas, descripcion, status
+			tipo_propiedad, ubicacion, 
+			NULLIF(dormitorios, '') as dormitorios,
+			NULLIF(banios, '') as banios,
+			antiguedad,
+			NULLIF(superficie_cubierta, '') as superficie_cubierta,
+			NULLIF(superficie_total, '') as superficie_total,
+			NULLIF(superficie_terreno, '') as superficie_terreno,
+			NULLIF(frente, '') as frente,
+			NULLIF(fondo, '') as fondo,
+			NULLIF(ambientes, '') as ambientes,
+			NULLIF(plantas, '') as plantas,
+			NULLIF(cocheras, '') as cocheras,
+			situacion,
+			NULLIF(expensas, '') as expensas,
+			descripcion, status
 		FROM propiedades
 		WHERE status = 'pending'
 		ORDER BY created_at DESC`
@@ -363,8 +375,9 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
 			&p.URL, &p.ImagenURL, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
 			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
-			&p.SuperficieCubierta, &p.SuperficieTotal, &p.Frente, &p.Fondo, &p.Ambientes,
-			&p.Expensas, &p.Descripcion, &p.Status,
+			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
+			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
+			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
@@ -387,9 +400,13 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 			antiguedad = ?,
 			superficie_cubierta = ?,
 			superficie_total = ?,
+			superficie_terreno = ?,
 			frente = ?,
 			fondo = ?,
 			ambientes = ?,
+			plantas = ?,
+			cocheras = ?,
+			situacion = ?,
 			expensas = ?,
 			descripcion = ?,
 			status = ?,
@@ -406,9 +423,13 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 		p.Antiguedad,
 		p.SuperficieCubierta,
 		p.SuperficieTotal,
+		p.SuperficieTerreno,
 		p.Frente,
 		p.Fondo,
 		p.Ambientes,
+		p.Plantas,
+		p.Cocheras,
+		p.Situacion,
 		p.Expensas,
 		p.Descripcion,
 		p.Status,

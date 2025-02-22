@@ -162,10 +162,13 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 	fmt.Printf("🔍 Intentando obtener detalles de: %s\n", url)
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", false),
+		chromedp.Flag("headless", true),
 		chromedp.Flag("disable-gpu", true),
 		chromedp.Flag("no-sandbox", true),
 		chromedp.Flag("disable-dev-shm-usage", true),
+		chromedp.Flag("disable-extensions", true),
+		chromedp.Flag("disable-popup-blocking", true),
+		chromedp.Flag("disable-notifications", true),
 	)
 
 	allocCtx, cancel := chromedp.NewExecAllocator(ctx, opts...)
@@ -178,7 +181,7 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 
 	err := chromedp.Run(taskCtx,
 		chromedp.Navigate(url),
-		chromedp.Sleep(2*time.Second),
+		chromedp.WaitVisible("#ficha_detalle_cuerpo", chromedp.ByID),
 		chromedp.Evaluate(`
 			(() => {
 				// Función auxiliar para extraer números
@@ -188,28 +191,56 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 					return match ? parseFloat(match[0].replace(',', '.')) : 0;
 				}
 
+				// Función para extraer metros cuadrados
+				function extractM2(text) {
+					if (!text) return 0;
+					const match = text.match(/(\d+(?:[,.]\d+)?)\s*m²/);
+					return match ? parseFloat(match[1].replace(',', '.')) : 0;
+				}
+
 				// Función para buscar valor en la lista
 				function findValue(selector, label) {
 					const items = document.querySelectorAll(selector + ' li');
 					for (const item of items) {
 						if (item.textContent.toLowerCase().includes(label.toLowerCase())) {
-							return item.textContent.split(':')[1]?.trim() || item.textContent.split('i')[1]?.trim() || '';
+							const text = item.textContent;
+							const colonIndex = text.indexOf(':');
+							return colonIndex !== -1 ? text.substring(colonIndex + 1).trim() : '';
 						}
 					}
 					return '';
 				}
 
-				// Extraer datos
+				// Función para buscar texto en ficha_detalle_item
+				function findDetailValue(label) {
+					const items = document.querySelectorAll('#ficha_detalle_cuerpo .ficha_detalle_item');
+					for (const item of items) {
+						if (item.textContent.toLowerCase().includes(label.toLowerCase())) {
+							return item.textContent.split(label)[1]?.trim() || '';
+						}
+					}
+					return '';
+				}
+
+				// Extraer datos básicos
 				const tipoPropiedad = document.querySelector('#ficha_detalle_cuerpo .ficha_detalle_item:first-child')?.textContent.split('Tipo de Propiedad')[1]?.trim() || '';
 				const ubicacion = document.querySelector('#ficha_detalle_cuerpo .ficha_detalle_item:nth-child(2)')?.textContent.split('Ubicación')[1]?.trim() || '';
 				
+				// Extraer información básica
 				const dormitorios = extractNumber(findValue('#lista_informacion_basica', 'Dormitorios'));
 				const banios = extractNumber(findValue('#lista_informacion_basica', 'Baños'));
 				const antiguedad = findValue('#lista_informacion_basica', 'Antigüedad');
 				const ambientes = extractNumber(findValue('#lista_informacion_basica', 'Ambientes'));
+				const plantas = extractNumber(findValue('#lista_informacion_basica', 'Plantas'));
+				const cocheras = extractNumber(findValue('#lista_informacion_basica', 'Cocheras'));
+				const situacion = findValue('#lista_informacion_basica', 'Situación');
 				const expensas = extractNumber(findValue('#lista_informacion_basica', 'Expensas'));
 
-				const superficieCubierta = extractNumber(findValue('#lista_superficies', 'Cubierta'));
+				// Extraer superficies
+				const superficieTerreno = extractM2(findValue('#lista_superficies', 'Terreno'));
+				const superficieTotal = extractM2(findValue('#lista_superficies', 'Superficie Total'));
+				const superficieCubierta = extractM2(findValue('#lista_superficies', 'Cubierta')) || 
+					extractM2(findDetailValue('Total construido'));
 				const frente = extractNumber(findValue('#lista_superficies', 'Frente'));
 				const fondo = extractNumber(findValue('#lista_superficies', 'Fondo'));
 
@@ -217,7 +248,9 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 
 				console.log('Datos extraídos:', {
 					tipoPropiedad, ubicacion, dormitorios, banios, antiguedad,
-					superficieCubierta, frente, fondo, ambientes, expensas, descripcion
+					superficieCubierta, superficieTotal, superficieTerreno,
+					frente, fondo, ambientes, plantas, cocheras, situacion,
+					expensas, descripcion
 				});
 
 				return {
@@ -227,9 +260,14 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 					banios,
 					antiguedad,
 					superficieCubierta,
+					superficieTotal,
+					superficieTerreno,
 					frente,
 					fondo,
 					ambientes,
+					plantas,
+					cocheras,
+					situacion,
 					expensas,
 					descripcion
 				};

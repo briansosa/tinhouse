@@ -50,12 +50,16 @@ type Propiedad struct {
 	Antiguedad         *string  `db:"antiguedad"`
 	SuperficieCubierta *float64 `db:"superficie_cubierta"`
 	SuperficieTotal    *float64 `db:"superficie_total"`
+	SuperficieTerreno  *float64 `db:"superficie_terreno"`
 	Frente             *float64 `db:"frente"`
 	Fondo              *float64 `db:"fondo"`
 	Ambientes          *int     `db:"ambientes"`
+	Plantas            *int     `db:"plantas"`
+	Cocheras           *int     `db:"cocheras"`
+	Situacion          *string  `db:"situacion"`
 	Expensas           *float64 `db:"expensas"`
 	Descripcion        *string  `db:"descripcion"`
-	Status             string   `db:"status"` // Este no puede ser NULL por el DEFAULT
+	Status             string   `db:"status"`
 }
 
 // BusquedaPropiedad representa la relación entre búsquedas y propiedades
