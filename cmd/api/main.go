@@ -10,6 +10,7 @@ import (
 	"github.com/findhouse/internal/db"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 func main() {
@@ -26,6 +27,17 @@ func main() {
 
 	// Crear router y handlers
 	r := chi.NewRouter()
+
+	// Basic CORS
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173"}, // URL de desarrollo de Vite
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+
 	h := api.NewHandler(database)
 
 	// Middleware
@@ -34,11 +46,9 @@ func main() {
 
 	// Rutas
 	r.Route("/api", func(r chi.Router) {
-		r.Route("/properties", func(r chi.Router) {
-			r.Get("/unrated", h.GetUnratedProperties)
-			r.Get("/liked", h.GetLikedProperties)
-			r.Put("/{id}/rate", h.RateProperty)
-		})
+		r.Get("/properties/unrated", h.GetUnratedProperties)
+		r.Get("/properties/liked", h.GetLikedProperties)
+		r.Put("/properties/{id}/rate", h.RateProperty)
 	})
 
 	// Iniciar servidor

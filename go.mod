@@ -13,6 +13,7 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20250210231439-aea867ea8506 // indirect
 	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/cors v1.2.1
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.4.0 // indirect
