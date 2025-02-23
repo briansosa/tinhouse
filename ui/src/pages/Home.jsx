@@ -5,6 +5,7 @@ import PropertyCard from '../components/PropertyCard/PropertyCard';
 export default function Home() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState([]); // Historial de propiedades descartadas
 
   useEffect(() => {
     loadProperties();
@@ -23,8 +24,23 @@ export default function Home() {
   };
 
   const handleRate = () => {
-    // Remover la propiedad actual y mostrar la siguiente
+    // Guardamos la propiedad actual en el historial antes de descartarla
+    setHistory(prev => [...prev, properties[0]]);
+    // Removemos la propiedad actual
     setProperties(prev => prev.slice(1));
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    
+    // Recuperamos la última propiedad del historial
+    const lastProperty = history[history.length - 1];
+    
+    // La agregamos al inicio de las propiedades activas
+    setProperties(prev => [lastProperty, ...prev]);
+    
+    // La removemos del historial
+    setHistory(prev => prev.slice(0, -1));
   };
 
   if (loading) {
@@ -37,6 +53,8 @@ export default function Home() {
         <PropertyCard 
           property={properties[0]}
           onRate={handleRate}
+          onUndo={handleUndo}
+          canUndo={history.length > 0}
         />
       ) : (
         <div className="text-center text-gray-600">No more properties to show</div>
