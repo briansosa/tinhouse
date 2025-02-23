@@ -35,17 +35,7 @@ export default function Home() {
     <div className="container mx-auto p-4">
       {properties.length > 0 ? (
         <PropertyCard 
-          property={{
-            ...properties[0],
-            details: {
-              bedrooms: properties[0].details?.bedrooms,
-              bathrooms: properties[0].details?.bathrooms,
-              area: properties[0].details?.area,
-            },
-            agency: properties[0].agency,
-            description: properties[0].description,
-            url: properties[0].url,
-          }} 
+          property={properties[0]}
           onRate={handleRate}
         />
       ) : (
