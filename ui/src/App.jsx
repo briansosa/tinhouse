@@ -1,7 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home';
 import Likes from './pages/Likes';
+import Layout from './components/Layout/Layout';
 import { useState, useEffect } from 'react';
+import BottomNavBar from './components/BottomNavBar/BottomNavBar';
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -9,6 +11,8 @@ function App() {
     return localStorage.getItem('theme') === 'dark' || 
       (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
+
+  const [showNavBar, setShowNavBar] = useState(true);
 
   useEffect(() => {
     // Actualizamos la clase en el html y guardamos la preferencia
@@ -24,16 +28,13 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-100 dark:bg-gray-950">
-        {/* Removemos el header actual */}
-        
-        {/* Contenido principal con padding bottom para la barra */}
-        <main className="pb-16"> {/* Agregamos padding bottom para la barra */}
+        <div className="relative max-w-md mx-auto h-screen">
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/likes" element={<Likes />} />
-            {/* Podemos agregar la ruta de filtros después */}
+            <Route path="/" element={<Home setShowNavBar={setShowNavBar} />} />
+            <Route path="/likes" element={<Likes setShowNavBar={setShowNavBar} />} />
           </Routes>
-        </main>
+          <BottomNavBar show={showNavBar} />
+        </div>
 
         {/* Botón para cambiar el tema */}
         <button 

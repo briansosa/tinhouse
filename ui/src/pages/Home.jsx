@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getUnratedProperties } from '../services/api';
 import PropertyCard from '../components/PropertyCard/PropertyCard';
 
-export default function Home() {
+export default function Home({ setShowNavBar }) {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState([]); // Historial de propiedades descartadas
@@ -48,13 +48,14 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="h-full">
       {properties.length > 0 ? (
         <PropertyCard 
           property={properties[0]}
           onRate={handleRate}
           onUndo={handleUndo}
           canUndo={history.length > 0}
+          setShowNavBar={setShowNavBar}
         />
       ) : (
         <div className="text-center text-gray-600">No more properties to show</div>

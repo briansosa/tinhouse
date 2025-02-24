@@ -1,56 +1,64 @@
 import { Link, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useRef, useEffect } from 'react';
 
-const NavItem = ({ to, icon: Icon, label }) => {
+export default function BottomNavBar({ show }) {
     const location = useLocation();
-    const isActive = location.pathname === to;
+    const hasAnimated = useRef(false);
+    
+    // Definimos las variantes de animación
+    const variants = {
+        initial: { y: 100 },
+        visible: { y: 0 },
+        hidden: { y: 100, transition: { duration: 0 } }
+    };
 
     return (
-        <Link 
-            to={to} 
-            className={`flex flex-col items-center p-2 transition-colors ${
-                isActive 
-                    ? 'text-green-500 dark:text-green-400' 
-                    : 'text-gray-600 dark:text-gray-400 hover:text-green-500 dark:hover:text-green-400'
-            }`}
-        >
-            <Icon className="w-6 h-6" />
-            <span className="text-xs mt-1">{label}</span>
-        </Link>
-    );
-};
-
-export default function BottomNavBar() {
-    return (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg">
-            <div className="max-w-md mx-auto flex justify-around items-center h-16 px-4">
-                <NavItem 
-                    to="/" 
-                    icon={(props) => (
-                        <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <AnimatePresence mode="wait">
+            <motion.div 
+                key="bottomNav"
+                variants={variants}
+                initial={hasAnimated.current ? false : "initial"}
+                animate={show ? "visible" : "hidden"}
+                transition={hasAnimated.current ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 30 }}
+                onAnimationComplete={() => {
+                    hasAnimated.current = true;
+                }}
+                className="fixed bottom-0 left-0 right-0 h-16 bg-white/80 dark:bg-gray-950 backdrop-blur-lg border-t border-gray-200/20 dark:border-gray-800/20 z-50"
+                style={{ maxWidth: "448px", margin: "0 auto" }}
+            >
+                <div className="flex justify-around items-center h-full px-2">
+                    <Link 
+                        to="/" 
+                        className={`flex flex-col items-center transition-colors ${
+                            location.pathname === '/' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'
+                        }`}
+                    >
+                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                         </svg>
-                    )}
-                    label="Inicio"
-                />
-                <NavItem 
-                    to="/likes" 
-                    icon={(props) => (
-                        <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </Link>
+
+                    <Link 
+                        to="/likes" 
+                        className={`flex flex-col items-center transition-colors ${
+                            location.pathname === '/likes' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'
+                        }`}
+                    >
+                        <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                         </svg>
-                    )}
-                    label="Favoritos"
-                />
-                <NavItem 
-                    to="/filters" 
-                    icon={(props) => (
-                        <svg {...props} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    </Link>
+
+                    <button 
+                        className="flex flex-col items-center text-gray-400 hover:text-green-500 transition-colors"
+                    >
+                        <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                         </svg>
-                    )}
-                    label="Filtros"
-                />
-            </div>
-        </nav>
+                    </button>
+                </div>
+            </motion.div>
+        </AnimatePresence>
     );
 } 

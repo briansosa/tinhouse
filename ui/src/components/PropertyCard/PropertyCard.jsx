@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import { rateProperty } from '../../services/api';
@@ -6,7 +6,7 @@ import PropertyDetails from '../PropertyDetails/PropertyDetails';
 import ImageCarousel from '../ImageCarousel/ImageCarousel';
 import { Link, useLocation } from 'react-router-dom';
 
-export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
+export default function PropertyCard({ property, onRate, onUndo, canUndo, setShowNavBar }) {
   const [showDetails, setShowDetails] = useState(false);
   const [isRating, setIsRating] = useState(false);
 
@@ -19,6 +19,10 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
   const likeOpacity = useTransform(x, [-100, 0], [1, 0]);
   const dislikeScale = useTransform(x, [0, 125], [1, 1.5]);
   const likeScale = useTransform(x, [-125, 0], [1.5, 1]);
+
+  useEffect(() => {
+    setShowNavBar(true);
+  }, []);
 
   const handleRate = async (rating) => {
     if (isRating) return;
@@ -48,12 +52,14 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
       animate(x, 0, { duration: 0.1 });
     } finally {
       setIsRating(false);
+      setShowNavBar(true);
     }
   };
 
   // Configuración del gesto de arrastre
   const bind = useDrag(({ down, movement: [mx], direction: [xDir], velocity, active }) => {
     if (isRating) return;
+    setShowNavBar(false);
 
     if (down) {
       // Mientras arrastramos
@@ -64,6 +70,7 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
       if (swipe) {
         const rating = mx > 0 ? 'dislike' : 'like';
         handleRate(rating);
+        setShowNavBar(true);
       } else {
         // Si no fue suficiente el swipe, volvemos al centro
         animate(x, 0, { 
@@ -88,17 +95,11 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
         style={{ x, rotate }}
         className="relative bg-white dark:bg-gray-950 rounded-xl shadow-lg overflow-hidden h-[98vh] touch-none cursor-grab active:cursor-grabbing"
       >
-        {/* Indicadores de Like/Dislike con su propia opacidad */}
-        <motion.div 
-          style={{ scale: likeScale, opacity: likeOpacity }}
-          className="absolute top-8 right-8 z-10 border-4 border-green-500 text-green-500 px-8 py-2 rounded-full font-bold transform rotate-12"
-        >
+        {/* Indicadores de Like/Dislike */}
+        <motion.div style={{ scale: likeScale, opacity: likeOpacity }} className="absolute top-8 right-8 z-10 border-4 border-green-500 text-green-500 px-8 py-2 rounded-full font-bold transform rotate-12">
           LIKE
         </motion.div>
-        <motion.div 
-          style={{ scale: dislikeScale, opacity: nopeOpacity }}
-          className="absolute top-8 left-8 z-10 border-4 border-red-500 text-red-500 px-8 py-2 rounded-full font-bold transform -rotate-12"
-        >
+        <motion.div style={{ scale: dislikeScale, opacity: nopeOpacity }} className="absolute top-8 left-8 z-10 border-4 border-red-500 text-red-500 px-8 py-2 rounded-full font-bold transform -rotate-12">
           NOPE
         </motion.div>
 
@@ -126,7 +127,10 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
             )}
 
             <button 
-              onClick={() => setShowDetails(!showDetails)}
+              onClick={() => {
+                setShowDetails(!showDetails);
+                setShowNavBar(showDetails);
+              }}
               className={`absolute top-4 right-4 bg-white/30 hover:bg-white/50 dark:bg-black/30 dark:hover:bg-black/50 rounded-full p-3 transition-all transform ${showDetails ? 'rotate-180' : ''} z-20`}
             >
               <svg className="w-6 h-6" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -142,80 +146,24 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
           )}
         </div>
 
-        {/* Botones de acción - Centramos verticalmente */}
+        {/* Botones de acción */}
         <div className={`absolute ${!showDetails ? 'bottom-[4.5rem]' : 'bottom-4'} left-0 right-0 flex justify-center gap-4`}>
-          <button 
-            className="rounded-full p-3 bg-gray-800/50 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
-            disabled={!canUndo || isRating}
-            onClick={onUndo}
-          >
+          <button className="rounded-full p-3 bg-gray-800/50 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 disabled:opacity-50 disabled:scale-100 disabled:shadow-none" disabled={!canUndo || isRating} onClick={onUndo}>
             <svg className="w-7 h-7" fill="none" stroke="white" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
             </svg>
           </button>
-          <button 
-            className="rounded-full p-4 bg-gray-800/50 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
-            disabled={isRating}
-            onClick={() => handleRate('dislike')}
-          >
+          <button className="rounded-full p-4 bg-gray-800/50 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 disabled:opacity-50 disabled:scale-100 disabled:shadow-none" disabled={isRating} onClick={() => handleRate('dislike')}>
             <svg className="w-8 h-8" fill="#FF4458" viewBox="0 0 24 24">
               <path d="M14.8 12l3.6-3.6c.8-.8.8-2 0-2.8-.8-.8-2-.8-2.8 0L12 9.2 8.4 5.6c-.8-.8-2-.8-2.8 0-.8.8-.8 2 0 2.8L9.2 12l-3.6 3.6c-.8.8-.8 2 0 2.8.4.4.9.6 1.4.6.5 0 1-.2 1.4-.6l3.6-3.6 3.6 3.6c.4.4.9.6 1.4.6.5 0 1-.2 1.4-.6.8-.8.8-2 0-2.8L14.8 12z"/>
             </svg>
           </button>
-          <button 
-            className="rounded-full p-4 bg-gray-800/50 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
-            disabled={isRating}
-            onClick={() => handleRate('like')}
-          >
+          <button className="rounded-full p-4 bg-gray-800/50 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 disabled:opacity-50 disabled:scale-100 disabled:shadow-none" disabled={isRating} onClick={() => handleRate('like')}>
             <svg className="w-8 h-8" fill="#00DC7D" viewBox="0 0 24 24">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
           </button>
         </div>
-
-        {/* Barra de navegación con animación */}
-        <AnimatePresence mode="sync">
-          {!showDetails && (
-            <motion.div 
-              initial={{ y: 100, opacity: 0 }}
-              exit={{ y: 100, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ 
-                duration: 0.3, 
-                ease: "easeOut"
-              }}
-              className="absolute bottom-0 left-0 right-0 h-16 bg-white/80 dark:bg-gray-950 backdrop-blur-lg border-t border-gray-200/20 dark:border-gray-800/20"
-            >
-              <div className="flex justify-around items-center h-full px-2">
-                <Link 
-                  to="/" 
-                  className="flex flex-col items-center transition-colors"
-                >
-                  <svg className="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                  </svg>
-                </Link>
-
-                <Link 
-                  to="/likes" 
-                  className="flex flex-col items-center transition-colors"
-                >
-                  <svg className="w-7 h-7 text-gray-400 hover:text-green-500 transition-colors" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-                  </svg>
-                </Link>
-
-                <button 
-                  className="flex flex-col items-center transition-colors group"
-                >
-                  <svg className="w-7 h-7 text-gray-400 group-hover:text-green-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                  </svg>
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.div>
     </div>
   );
