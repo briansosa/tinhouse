@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate, AnimatePresence } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import { rateProperty } from '../../services/api';
 import PropertyDetails from '../PropertyDetails/PropertyDetails';
 import ImageCarousel from '../ImageCarousel/ImageCarousel';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
   const [showDetails, setShowDetails] = useState(false);
@@ -85,7 +86,7 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
       <motion.div
         {...bind()}
         style={{ x, rotate }}
-        className="relative bg-white dark:bg-gray-950 rounded-xl shadow-lg overflow-hidden h-[85vh] touch-none cursor-grab active:cursor-grabbing"
+        className="relative bg-white dark:bg-gray-950 rounded-xl shadow-lg overflow-hidden h-[98vh] touch-none cursor-grab active:cursor-grabbing"
       >
         {/* Indicadores de Like/Dislike con su propia opacidad */}
         <motion.div 
@@ -103,7 +104,7 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
 
         {/* Contenido de la card */}
         <div className="h-full overflow-y-auto select-none">
-          <div className={`relative ${showDetails ? 'h-[40vh]' : 'h-[73vh]'} transition-all duration-300`}>
+          <div className={`relative ${showDetails ? 'h-[40vh]' : 'h-[79vh]'} transition-all duration-300`}>
             <ImageCarousel property={property} />
             
             {!showDetails && (
@@ -140,20 +141,9 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
             </div>
           )}
         </div>
-      </motion.div>
 
-      {/* Botones de acción */}
-      <div className={`
-        absolute bottom-0 left-0 right-0 
-        ${showDetails ? 'h-16 bg-gradient-to-t from-white dark:from-black via-white dark:via-black to-transparent' : ''}
-      `}>
-        <div className={`
-          flex justify-around items-center px-4
-          ${showDetails 
-            ? 'h-full pb-6'
-            : 'h-24 py-6'
-          }
-        `}>
+        {/* Botones de acción - Centramos verticalmente */}
+        <div className={`absolute ${!showDetails ? 'bottom-[4.5rem]' : 'bottom-4'} left-0 right-0 flex justify-center gap-4`}>
           <button 
             className="rounded-full p-3 bg-gray-800/50 shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
             disabled={!canUndo || isRating}
@@ -182,7 +172,51 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
             </svg>
           </button>
         </div>
-      </div>
+
+        {/* Barra de navegación con animación */}
+        <AnimatePresence mode="sync">
+          {!showDetails && (
+            <motion.div 
+              initial={{ y: 100, opacity: 0 }}
+              exit={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ 
+                duration: 0.3, 
+                ease: "easeOut"
+              }}
+              className="absolute bottom-0 left-0 right-0 h-16 bg-white/80 dark:bg-gray-950 backdrop-blur-lg border-t border-gray-200/20 dark:border-gray-800/20"
+            >
+              <div className="flex justify-around items-center h-full px-2">
+                <Link 
+                  to="/" 
+                  className="flex flex-col items-center transition-colors"
+                >
+                  <svg className="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                  </svg>
+                </Link>
+
+                <Link 
+                  to="/likes" 
+                  className="flex flex-col items-center transition-colors"
+                >
+                  <svg className="w-7 h-7 text-gray-400 hover:text-green-500 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  </svg>
+                </Link>
+
+                <button 
+                  className="flex flex-col items-center transition-colors group"
+                >
+                  <svg className="w-7 h-7 text-gray-400 group-hover:text-green-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                  </svg>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
     </div>
   );
 } 
