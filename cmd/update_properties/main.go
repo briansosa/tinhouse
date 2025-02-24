@@ -98,7 +98,11 @@ func updateProperties(database *db.DB, testMode bool) error {
 			}
 		}
 
+		// Log para verificar los detalles obtenidos
+		fmt.Printf("   Detalles obtenidos: %+v\n", details)
+
 		// Actualizar propiedad con los detalles
+		fmt.Printf("   Actualizando propiedad %s con detalles...\n", prop.Codigo)
 		prop.TipoPropiedad = ptr(details.TipoPropiedad)
 		prop.Ubicacion = ptr(details.Ubicacion)
 		prop.Dormitorios = ptr(details.Dormitorios)
@@ -115,6 +119,7 @@ func updateProperties(database *db.DB, testMode bool) error {
 		prop.Situacion = ptr(details.Situacion)
 		prop.Expensas = ptr(details.Expensas)
 		prop.Descripcion = ptr(details.Descripcion)
+		prop.Imagenes = ptr(details.Images)
 		prop.Status = "completed"
 		actualizadas++
 
@@ -124,6 +129,9 @@ func updateProperties(database *db.DB, testMode bool) error {
 			fallidas++
 			continue
 		}
+
+		// Log para confirmar la actualización
+		fmt.Printf("✓ Propiedad %s actualizada exitosamente\n", prop.Codigo)
 
 		// Delay variable entre requests
 		time.Sleep(time.Duration(2+rand.Intn(3)) * time.Second)

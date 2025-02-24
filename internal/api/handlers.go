@@ -29,6 +29,7 @@ type PropertyResponse struct {
 	Location     string    `json:"location"`
 	PropertyType string    `json:"property_type,omitempty"`
 	ImageURL     string    `json:"image_url"`
+	Images       []string  `json:"images,omitempty"`
 	URL          string    `json:"url"`
 	Description  string    `json:"description,omitempty"`
 	LastUpdated  time.Time `json:"last_updated"`
@@ -150,6 +151,12 @@ func (h *Handler) toPropertyResponse(p *db.Propiedad) PropertyResponse {
 		}
 	}
 
+	// Convertir las imágenes
+	var images []string
+	if p.Imagenes != nil {
+		images = *p.Imagenes
+	}
+
 	return PropertyResponse{
 		ID:           p.ID,
 		Title:        p.Titulo,
@@ -158,6 +165,7 @@ func (h *Handler) toPropertyResponse(p *db.Propiedad) PropertyResponse {
 		Location:     getLocation(p),
 		PropertyType: getString(p.TipoPropiedad),
 		ImageURL:     p.ImagenURL,
+		Images:       images,
 		URL:          p.URL,
 		Description:  getString(p.Descripcion),
 		LastUpdated:  p.FechaScraping,

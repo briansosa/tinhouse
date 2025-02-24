@@ -38,6 +38,7 @@ type Propiedad struct {
 	Direccion      string    `db:"direccion"`
 	URL            string    `db:"url"`
 	ImagenURL      string    `db:"imagen_url"`
+	Imagenes       *[]string `db:"imagenes"`
 	FechaScraping  time.Time `db:"fecha_scraping"`
 	CreatedAt      time.Time `db:"created_at"`
 	UpdatedAt      time.Time `db:"updated_at"`

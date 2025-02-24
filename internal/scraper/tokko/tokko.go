@@ -246,11 +246,17 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 
 				const descripcion = document.querySelector('#prop-desc')?.textContent.trim() || '';
 
+				// Extraer imágenes
+				const images = Array.from(document.querySelectorAll('#ficha_slider .slides li:not(.bx-clone) img'))
+					.map(img => img.src);
+
+				console.log('Imágenes extraídas:', images); // Log para verificar imágenes
+
 				console.log('Datos extraídos:', {
 					tipoPropiedad, ubicacion, dormitorios, banios, antiguedad,
 					superficieCubierta, superficieTotal, superficieTerreno,
 					frente, fondo, ambientes, plantas, cocheras, situacion,
-					expensas, descripcion
+					expensas, descripcion, images
 				});
 
 				return {
@@ -269,7 +275,8 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 					cocheras,
 					situacion,
 					expensas,
-					descripcion
+					descripcion,
+					images
 				};
 			})()
 		`, &details),

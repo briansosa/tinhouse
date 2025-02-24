@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -343,7 +344,8 @@ func (db *DB) CreatePropiedadAndLink(p *Propiedad, busquedaID int64) error {
 func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 	query := `
 		SELECT 
-			id, inmobiliaria_id, codigo, titulo, precio, direccion, url, imagen_url, 
+			id, inmobiliaria_id, codigo, titulo, precio, direccion, url, imagen_url,
+			NULLIF(imagenes, '') as imagenes,
 			fecha_scraping, created_at, updated_at,
 			tipo_propiedad, ubicacion, 
 			NULLIF(dormitorios, '') as dormitorios,
@@ -373,9 +375,12 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 	var propiedades []Propiedad
 	for rows.Next() {
 		var p Propiedad
+		var imagenesJSON sql.NullString // Para manejar NULL en la base de datos
+
 		err := rows.Scan(
 			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
-			&p.URL, &p.ImagenURL, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
+			&p.URL, &p.ImagenURL, &imagenesJSON, // Usamos imagenesJSON en lugar de p.Imagenes directamente
+			&p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
 			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
 			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
 			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
@@ -384,6 +389,16 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
 		}
+
+		// Deserializar JSON si existe
+		if imagenesJSON.Valid && imagenesJSON.String != "" {
+			var imagenes []string
+			if err := json.Unmarshal([]byte(imagenesJSON.String), &imagenes); err != nil {
+				return nil, fmt.Errorf("error deserializando imágenes: %v", err)
+			}
+			p.Imagenes = &imagenes
+		}
+
 		propiedades = append(propiedades, p)
 	}
 
@@ -392,10 +407,23 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 
 // UpdatePropiedadDetalles actualiza solo los campos de detalles de una propiedad
 func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
+	fmt.Printf("Actualizando detalles de propiedad ID: %d\n", p.ID)
+
+	// Convertir el slice de imágenes a JSON
+	var imagenesJSON []byte
+	var err error
+	if p.Imagenes != nil {
+		imagenesJSON, err = json.Marshal(*p.Imagenes)
+		if err != nil {
+			return fmt.Errorf("error convirtiendo imágenes a JSON: %v", err)
+		}
+	}
+
 	query := `
 		UPDATE propiedades 
 		SET 
 			tipo_propiedad = ?,
+			imagenes = ?,
 			ubicacion = ?,
 			dormitorios = ?,
 			banios = ?,
@@ -417,8 +445,9 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 		WHERE id = ?
 		RETURNING created_at, updated_at`
 
-	err := db.QueryRow(query,
+	err = db.QueryRow(query,
 		p.TipoPropiedad,
+		string(imagenesJSON), // Convertimos el JSON a string
 		p.Ubicacion,
 		p.Dormitorios,
 		p.Banios,
@@ -469,7 +498,7 @@ func (db *DB) GetUnratedProperties() ([]Propiedad, error) {
 	query := `
 		SELECT 
 			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
-			p.url, p.imagen_url, p.fecha_scraping, p.created_at, p.updated_at,
+			p.url, p.imagen_url, p.imagenes, p.fecha_scraping, p.created_at, p.updated_at,
 			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
 			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
 			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
@@ -491,9 +520,11 @@ func (db *DB) GetUnratedProperties() ([]Propiedad, error) {
 	var propiedades []Propiedad
 	for rows.Next() {
 		var p Propiedad
+		var imagenesJSON sql.NullString // Para manejar NULL en la base de datos
+
 		err := rows.Scan(
 			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
-			&p.URL, &p.ImagenURL, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
+			&p.URL, &p.ImagenURL, &imagenesJSON, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
 			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
 			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
 			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
@@ -502,6 +533,16 @@ func (db *DB) GetUnratedProperties() ([]Propiedad, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
 		}
+
+		// Deserializar JSON si existe
+		if imagenesJSON.Valid && imagenesJSON.String != "" {
+			var imagenes []string
+			if err := json.Unmarshal([]byte(imagenesJSON.String), &imagenes); err != nil {
+				return nil, fmt.Errorf("error deserializando imágenes: %v", err)
+			}
+			p.Imagenes = &imagenes
+		}
+
 		propiedades = append(propiedades, p)
 	}
 
@@ -513,7 +554,7 @@ func (db *DB) GetLikedProperties() ([]Propiedad, error) {
 	query := `
 		SELECT 
 			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
-			p.url, p.imagen_url, p.fecha_scraping, p.created_at, p.updated_at,
+			p.url, p.imagen_url, p.imagenes, p.fecha_scraping, p.created_at, p.updated_at,
 			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
 			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
 			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
@@ -532,9 +573,11 @@ func (db *DB) GetLikedProperties() ([]Propiedad, error) {
 	var propiedades []Propiedad
 	for rows.Next() {
 		var p Propiedad
+		var imagenesJSON sql.NullString // Para manejar NULL en la base de datos
+
 		err := rows.Scan(
 			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
-			&p.URL, &p.ImagenURL, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
+			&p.URL, &p.ImagenURL, &imagenesJSON, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
 			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
 			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
 			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
@@ -543,6 +586,16 @@ func (db *DB) GetLikedProperties() ([]Propiedad, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
 		}
+
+		// Deserializar JSON si existe
+		if imagenesJSON.Valid && imagenesJSON.String != "" {
+			var imagenes []string
+			if err := json.Unmarshal([]byte(imagenesJSON.String), &imagenes); err != nil {
+				return nil, fmt.Errorf("error deserializando imágenes: %v", err)
+			}
+			p.Imagenes = &imagenes
+		}
+
 		propiedades = append(propiedades, p)
 	}
 

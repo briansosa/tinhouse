@@ -34,9 +34,27 @@ CREATE TABLE IF NOT EXISTS propiedades (
     direccion TEXT,
     url TEXT,
     imagen_url TEXT,
+    imagenes TEXT,  -- Nueva columna para array de imágenes
     fecha_scraping TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    tipo_propiedad TEXT,
+    ubicacion TEXT,
+    dormitorios INTEGER,
+    banios INTEGER,
+    antiguedad TEXT,
+    superficie_cubierta FLOAT,
+    superficie_total FLOAT,
+    superficie_terreno FLOAT,
+    frente FLOAT,
+    fondo FLOAT,
+    ambientes INTEGER,
+    plantas INTEGER,
+    cocheras INTEGER,
+    situacion TEXT,
+    expensas FLOAT,
+    descripcion TEXT,
+    status TEXT DEFAULT 'pending',
     FOREIGN KEY (inmobiliaria_id) REFERENCES inmobiliarias(id)
 );
 

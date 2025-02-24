@@ -3,6 +3,7 @@ import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import { rateProperty } from '../../services/api';
 import PropertyDetails from '../PropertyDetails/PropertyDetails';
+import ImageCarousel from '../ImageCarousel/ImageCarousel';
 
 export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
   const [showDetails, setShowDetails] = useState(false);
@@ -103,12 +104,7 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo }) {
         {/* Contenido de la card */}
         <div className="h-full overflow-y-auto select-none">
           <div className={`relative ${showDetails ? 'h-[40vh]' : 'h-[73vh]'} transition-all duration-300`}>
-            <img 
-              src={property.image_url || 'https://via.placeholder.com/400x300'} 
-              alt={property.title}
-              className="w-full h-full object-cover pointer-events-none"
-              draggable="false"
-            />
+            <ImageCarousel property={property} />
             
             {!showDetails && (
               <>

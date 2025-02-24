@@ -38,13 +38,14 @@ type PropertyDetails struct {
 	Antiguedad         string
 	SuperficieCubierta float64
 	SuperficieTotal    float64
-	SuperficieTerreno  float64 // Nuevo campo
+	SuperficieTerreno  float64
 	Frente             float64
 	Fondo              float64
 	Ambientes          int
-	Plantas            int    // Nuevo campo
-	Cocheras           int    // Nuevo campo
-	Situacion          string // Nuevo campo
+	Plantas            int
+	Cocheras           int
+	Situacion          string
 	Expensas           float64
 	Descripcion        string
+	Images             []string
 }
