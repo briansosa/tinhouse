@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/findhouse/internal/models"
 	_ "github.com/mattn/go-sqlite3"
@@ -190,16 +191,18 @@ func (db *DB) ExistsInmobiliaria(nombre, direccion string) (bool, error) {
 							REPLACE(
 								REPLACE(
 									REPLACE(
-										REPLACE(nombre, ' ', ''),
-										'.', ''
+										REPLACE(
+											REPLACE(nombre, ' ', ''),
+											'.', ''
+										),
+										',', ''
 									),
-									',', ''
+									'-', ''
 								),
-								'-', ''
+								'&', ''
 							),
-							'&', ''
-						),
-						'''', ''
+							'''', ''
+						)
 					)
 				) as nombre_norm,
 				LOWER(
@@ -208,16 +211,18 @@ func (db *DB) ExistsInmobiliaria(nombre, direccion string) (bool, error) {
 							REPLACE(
 								REPLACE(
 									REPLACE(
-										REPLACE(direccion, ' ', ''),
-										'.', ''
+										REPLACE(
+											REPLACE(direccion, ' ', ''),
+											'.', ''
+										),
+										',', ''
 									),
-									',', ''
+									'-', ''
 								),
-								'-', ''
+								'&', ''
 							),
-							'&', ''
-						),
-						'''', ''
+							'''', ''
+						)
 					)
 				) as direccion_norm
 			FROM inmobiliarias
@@ -493,9 +498,9 @@ func (db *DB) GetInmobiliariaByID(id int64) (*Inmobiliaria, error) {
 	return &i, nil
 }
 
-// GetUnratedProperties retorna las propiedades que no tienen calificación
-func (db *DB) GetUnratedProperties() ([]Propiedad, error) {
-	query := `
+// GetUnratedProperties retorna las propiedades sin calificar
+func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) {
+	baseQuery := `
 		SELECT 
 			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
 			p.url, p.imagen_url, p.imagenes, p.fecha_scraping, p.created_at, p.updated_at,
@@ -508,15 +513,60 @@ func (db *DB) GetUnratedProperties() ([]Propiedad, error) {
 			SELECT 1 
 			FROM property_ratings r 
 			WHERE r.property_id = p.id
-		)
-		ORDER BY p.created_at DESC`
+		)`
 
-	rows, err := db.Query(query)
+	whereConditions, args := buildFilterConditions(filter)
+
+	// Agregar condiciones WHERE si existen
+	if len(whereConditions) > 0 {
+		baseQuery += " AND " + strings.Join(whereConditions, " AND ")
+	}
+
+	baseQuery += " ORDER BY p.created_at DESC"
+
+	rows, err := db.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error consultando propiedades sin calificar: %v", err)
 	}
 	defer rows.Close()
 
+	return scanPropiedades(rows)
+}
+
+// GetLikedProperties retorna las propiedades que tienen like
+func (db *DB) GetLikedProperties(filter *PropertyFilter) ([]Propiedad, error) {
+	baseQuery := `
+		SELECT 
+			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
+			p.url, p.imagen_url, p.imagenes, p.fecha_scraping, p.created_at, p.updated_at,
+			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
+			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
+			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
+			p.situacion, p.expensas, p.descripcion, p.status
+		FROM propiedades p
+		INNER JOIN property_ratings r ON r.property_id = p.id
+		WHERE r.rating = 'like'`
+
+	whereConditions, args := buildFilterConditions(filter)
+
+	// Agregar condiciones WHERE si existen
+	if len(whereConditions) > 0 {
+		baseQuery += " AND " + strings.Join(whereConditions, " AND ")
+	}
+
+	baseQuery += " ORDER BY r.created_at DESC"
+
+	rows, err := db.Query(baseQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error consultando propiedades con like: %v", err)
+	}
+	defer rows.Close()
+
+	return scanPropiedades(rows)
+}
+
+// Helper para escanear propiedades desde filas de resultados
+func scanPropiedades(rows *sql.Rows) ([]Propiedad, error) {
 	var propiedades []Propiedad
 	for rows.Next() {
 		var p Propiedad
@@ -549,57 +599,115 @@ func (db *DB) GetUnratedProperties() ([]Propiedad, error) {
 	return propiedades, nil
 }
 
-// GetLikedProperties retorna las propiedades que tienen like
-func (db *DB) GetLikedProperties() ([]Propiedad, error) {
-	query := `
-		SELECT 
-			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
-			p.url, p.imagen_url, p.imagenes, p.fecha_scraping, p.created_at, p.updated_at,
-			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
-			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
-			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
-			p.situacion, p.expensas, p.descripcion, p.status
-		FROM propiedades p
-		INNER JOIN property_ratings r ON r.property_id = p.id
-		WHERE r.rating = 'like'
-		ORDER BY r.created_at DESC`
-
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("error consultando propiedades con like: %v", err)
-	}
-	defer rows.Close()
-
-	var propiedades []Propiedad
-	for rows.Next() {
-		var p Propiedad
-		var imagenesJSON sql.NullString // Para manejar NULL en la base de datos
-
-		err := rows.Scan(
-			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
-			&p.URL, &p.ImagenURL, &imagenesJSON, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
-			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
-			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
-			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
-			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
-		}
-
-		// Deserializar JSON si existe
-		if imagenesJSON.Valid && imagenesJSON.String != "" {
-			var imagenes []string
-			if err := json.Unmarshal([]byte(imagenesJSON.String), &imagenes); err != nil {
-				return nil, fmt.Errorf("error deserializando imágenes: %v", err)
-			}
-			p.Imagenes = &imagenes
-		}
-
-		propiedades = append(propiedades, p)
+// buildFilterConditions construye las condiciones WHERE y los argumentos para los filtros
+func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
+	if filter == nil {
+		return nil, nil
 	}
 
-	return propiedades, nil
+	var conditions []string
+	var args []interface{}
+
+	// Filtro por tipo de propiedad
+	if filter.PropertyType != "" && filter.PropertyType != "all" {
+		conditions = append(conditions, "p.tipo_propiedad = ?")
+		args = append(args, filter.PropertyType)
+	}
+
+	// Filtro por ubicaciones
+	if len(filter.Locations) > 0 {
+		placeholders := make([]string, len(filter.Locations))
+		for i, loc := range filter.Locations {
+			placeholders[i] = "?"
+			args = append(args, "%"+loc+"%")
+		}
+		conditions = append(conditions, fmt.Sprintf("(p.ubicacion LIKE %s)", strings.Join(placeholders, " OR p.ubicacion LIKE ")))
+	}
+
+	// Filtro por precio
+	if filter.PriceMin != nil || filter.PriceMax != nil {
+		// Extraer el valor numérico del precio
+		priceExtract := `CAST(REPLACE(REPLACE(REPLACE(p.precio, '$', ''), '.', ''), ',', '') AS NUMERIC)`
+
+		// Ajustar para moneda
+		if filter.Currency == "USD" {
+			priceExtract = `CASE 
+				WHEN p.precio LIKE '%USD%' OR p.precio LIKE '%U$S%' THEN CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(p.precio, 'USD', ''), 'U$S', ''), '$', ''), '.', ''), ',', '') AS NUMERIC)
+				ELSE CAST(REPLACE(REPLACE(REPLACE(p.precio, '$', ''), '.', ''), ',', '') AS NUMERIC) / 1000
+			END`
+		} else {
+			// ARS
+			priceExtract = `CASE 
+				WHEN p.precio LIKE '%USD%' OR p.precio LIKE '%U$S%' THEN CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(p.precio, 'USD', ''), 'U$S', ''), '$', ''), '.', ''), ',', '') AS NUMERIC) * 1000
+				ELSE CAST(REPLACE(REPLACE(REPLACE(p.precio, '$', ''), '.', ''), ',', '') AS NUMERIC)
+			END`
+		}
+
+		if filter.PriceMin != nil {
+			conditions = append(conditions, fmt.Sprintf("%s >= ?", priceExtract))
+			args = append(args, *filter.PriceMin)
+		}
+
+		if filter.PriceMax != nil {
+			conditions = append(conditions, fmt.Sprintf("%s <= ?", priceExtract))
+			args = append(args, *filter.PriceMax)
+		}
+	}
+
+	// Filtro por tamaño (superficie)
+	if filter.SizeMin != nil {
+		conditions = append(conditions, "p.superficie_total >= ?")
+		args = append(args, *filter.SizeMin)
+	}
+
+	if filter.SizeMax != nil {
+		conditions = append(conditions, "p.superficie_total <= ?")
+		args = append(args, *filter.SizeMax)
+	}
+
+	// Filtro por ambientes
+	if filter.Rooms != nil {
+		conditions = append(conditions, "p.ambientes >= ?")
+		args = append(args, *filter.Rooms)
+	}
+
+	// Filtro por baños
+	if filter.Bathrooms != nil {
+		conditions = append(conditions, "p.banios >= ?")
+		args = append(args, *filter.Bathrooms)
+	}
+
+	// Filtro por antigüedad
+	if filter.Antiquity != nil {
+		// Convertir texto de antigüedad a un valor numérico aproximado
+		// Esto es una simplificación, idealmente se debería normalizar el campo en la base de datos
+		if *filter.Antiquity == 0 {
+			conditions = append(conditions, "(p.antiguedad LIKE '%estrenar%' OR p.antiguedad LIKE '%a estrenar%')")
+		} else {
+			conditions = append(conditions, "p.antiguedad LIKE ?")
+			args = append(args, fmt.Sprintf("%%%d%%", *filter.Antiquity))
+		}
+	}
+
+	// Filtro por características (features)
+	// Esto requeriría una tabla de características o buscar en la descripción
+	if len(filter.Features) > 0 {
+		featureConditions := make([]string, len(filter.Features))
+		for i, feature := range filter.Features {
+			featureConditions[i] = "p.descripcion LIKE ?"
+			args = append(args, "%"+feature+"%")
+		}
+		conditions = append(conditions, "("+strings.Join(featureConditions, " OR ")+")")
+	}
+
+	// Filtro para mostrar solo propiedades con notas
+	if filter.ShowOnlyWithNotes {
+		conditions = append(conditions, `EXISTS (
+			SELECT 1 FROM property_notes n WHERE n.property_id = p.id
+		)`)
+	}
+
+	return conditions, args
 }
 
 // RateProperty califica una propiedad como like o dislike
@@ -643,4 +751,85 @@ func (db *DB) RateProperty(propertyID int64, rating string) error {
 	fmt.Printf("Filas afectadas: %d\n", rows)
 
 	return nil
+}
+
+// GetPropertyNotes obtiene todas las notas de una propiedad
+func (db *DB) GetPropertyNotes(propertyID int64) ([]PropertyNote, error) {
+	query := `
+		SELECT id, property_id, note, created_at, updated_at
+		FROM property_notes
+		WHERE property_id = ?
+		ORDER BY created_at ASC
+	`
+
+	// Usar directamente el método Query del sql.DB subyacente
+	rows, err := db.DB.Query(query, propertyID)
+	if err != nil {
+		return nil, fmt.Errorf("error getting property notes: %w", err)
+	}
+	defer rows.Close()
+
+	notes := []PropertyNote{} // Inicializar como slice vacío en lugar de nil
+	for rows.Next() {
+		var note PropertyNote
+		if err := rows.Scan(&note.ID, &note.PropertyID, &note.Text, &note.CreatedAt, &note.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("error scanning property note: %w", err)
+		}
+		notes = append(notes, note)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating property notes: %w", err)
+	}
+
+	return notes, nil
+}
+
+// AddPropertyNote agrega una nota a una propiedad
+func (db *DB) AddPropertyNote(note *PropertyNote) error {
+	query := `
+		INSERT INTO property_notes (property_id, note, created_at, updated_at)
+		VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+	`
+
+	result, err := db.DB.Exec(query, note.PropertyID, note.Text)
+	if err != nil {
+		return fmt.Errorf("error adding property note: %w", err)
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("error getting last insert id: %w", err)
+	}
+
+	note.ID = id
+	note.CreatedAt = time.Now()
+	note.UpdatedAt = time.Now()
+
+	return nil
+}
+
+// DeletePropertyNote elimina una nota de una propiedad
+func (db *DB) DeletePropertyNote(noteID int64) error {
+	query := `DELETE FROM property_notes WHERE id = ?`
+
+	_, err := db.DB.Exec(query, noteID)
+	if err != nil {
+		return fmt.Errorf("error deleting property note: %w", err)
+	}
+
+	return nil
+}
+
+// PropertyHasNotes verifica si una propiedad tiene notas
+func (db *DB) PropertyHasNotes(propertyID int64) (bool, error) {
+	query := `SELECT COUNT(*) FROM property_notes WHERE property_id = ?`
+
+	var count int
+	err := db.DB.QueryRow(query, propertyID).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("error checking if property has notes: %w", err)
+	}
+
+	return count > 0, nil
 }

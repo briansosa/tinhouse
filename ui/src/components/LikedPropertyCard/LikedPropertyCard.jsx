@@ -2,15 +2,8 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 export default function LikedPropertyCard({ property, onClick }) {
-    const [hasNotes, setHasNotes] = useState(false);
-
-    useEffect(() => {
-        const savedNotes = localStorage.getItem(`property-notes-${property.id}`);
-        if (savedNotes) {
-            const notes = JSON.parse(savedNotes);
-            setHasNotes(notes.length > 0);
-        }
-    }, [property.id]);
+    // Ya no necesitamos verificar el localStorage, la API nos indica si la propiedad tiene notas
+    const hasNotes = property.has_notes;
 
     return (
         <motion.div 

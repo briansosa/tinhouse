@@ -1,30 +1,56 @@
 import { useState, useEffect } from 'react';
+import { getPropertyNotes, addPropertyNote, deletePropertyNote } from '../../services/api';
 
 export default function PropertyNotes({ property, onClose, onImageClick }) {
     const [notes, setNotes] = useState([]);
     const [newNote, setNewNote] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Cargar notas del localStorage
+    // Cargar notas desde la API
     useEffect(() => {
-        const savedNotes = localStorage.getItem(`property-notes-${property.id}`);
-        if (savedNotes) {
-            setNotes(JSON.parse(savedNotes));
-        }
+        const fetchNotes = async () => {
+            try {
+                setIsLoading(true);
+                const response = await getPropertyNotes(property.id);
+                setNotes(response.data.notes || []);
+                setError(null);
+            } catch (err) {
+                console.error('Error al cargar las notas:', err);
+                setError('No se pudieron cargar las notas');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchNotes();
     }, [property.id]);
 
-    const saveNote = () => {
+    const saveNote = async () => {
         if (!newNote.trim()) return;
         
-        const newNoteObj = {
-            id: Date.now(),
-            text: newNote,
-            date: new Date().toISOString(),
-        };
-        
-        const updatedNotes = [...notes, newNoteObj];
-        setNotes(updatedNotes);
-        localStorage.setItem(`property-notes-${property.id}`, JSON.stringify(updatedNotes));
-        setNewNote('');
+        try {
+            const response = await addPropertyNote(property.id, newNote);
+            const newNoteObj = response.data.note;
+            
+            setNotes(prev => [...prev, newNoteObj]);
+            setNewNote('');
+            setError(null);
+        } catch (err) {
+            console.error('Error al guardar la nota:', err);
+            setError('No se pudo guardar la nota');
+        }
+    };
+
+    const handleDeleteNote = async (noteId) => {
+        try {
+            await deletePropertyNote(noteId);
+            setNotes(prev => prev.filter(note => note.id !== noteId));
+            setError(null);
+        } catch (err) {
+            console.error('Error al eliminar la nota:', err);
+            setError('No se pudo eliminar la nota');
+        }
     };
 
     return (
@@ -54,7 +80,15 @@ export default function PropertyNotes({ property, onClose, onImageClick }) {
 
             {/* Chat area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {notes.length === 0 ? (
+                {isLoading ? (
+                    <div className="flex justify-center items-center h-full">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                    </div>
+                ) : error ? (
+                    <div className="text-center text-red-500 py-8">
+                        {error}
+                    </div>
+                ) : notes.length === 0 ? (
                     <div className="text-center text-gray-500 py-8">
                         No hay notas aún
                     </div>
@@ -62,15 +96,23 @@ export default function PropertyNotes({ property, onClose, onImageClick }) {
                     notes.map(note => (
                         <div 
                             key={note.id} 
-                            className="bg-blue-500 text-white p-3 rounded-lg max-w-[80%] ml-auto"
+                            className="bg-blue-500 text-white p-3 rounded-lg max-w-[80%] ml-auto relative group"
                         >
                             <p>{note.text}</p>
                             <p className="text-xs opacity-75 mt-1">
-                                {new Date(note.date).toLocaleTimeString([], { 
+                                {new Date(note.created_at).toLocaleTimeString([], { 
                                     hour: '2-digit', 
                                     minute: '2-digit' 
                                 })}
                             </p>
+                            <button 
+                                onClick={() => handleDeleteNote(note.id)}
+                                className="absolute -right-2 -top-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
                         </div>
                     ))
                 )}
@@ -90,7 +132,7 @@ export default function PropertyNotes({ property, onClose, onImageClick }) {
                     <button 
                         onClick={saveNote}
                         className="px-4 py-2 bg-blue-500 text-white rounded-full disabled:opacity-50"
-                        disabled={!newNote.trim()}
+                        disabled={!newNote.trim() || isLoading}
                     >
                         Enviar
                     </button>

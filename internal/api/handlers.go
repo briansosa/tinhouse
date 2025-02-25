@@ -36,6 +36,7 @@ type PropertyResponse struct {
 	CreatedAt    time.Time `json:"created_at"`
 	Details      Details   `json:"details"`
 	Agency       Agency    `json:"agency"`
+	HasNotes     bool      `json:"has_notes"`
 }
 
 type Details struct {
@@ -59,9 +60,24 @@ type Agency struct {
 	Name string `json:"name"`
 }
 
+// Note representa una nota de propiedad
+type Note struct {
+	ID         int64     `json:"id"`
+	PropertyID int64     `json:"property_id"`
+	Text       string    `json:"text"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
 // GetUnratedProperties retorna las propiedades sin calificar
 func (h *Handler) GetUnratedProperties(w http.ResponseWriter, r *http.Request) {
-	properties, err := h.db.GetUnratedProperties()
+	// Parsear filtros de la solicitud
+	filter, err := parsePropertyFilter(r)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error parsing filters: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	properties, err := h.db.GetUnratedProperties(filter)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error getting unrated properties: %v", err), http.StatusInternalServerError)
 		return
@@ -69,7 +85,15 @@ func (h *Handler) GetUnratedProperties(w http.ResponseWriter, r *http.Request) {
 
 	response := make([]PropertyResponse, 0, len(properties))
 	for _, p := range properties {
-		response = append(response, h.toPropertyResponse(&p))
+		resp := h.toPropertyResponse(&p)
+
+		// Verificar si la propiedad tiene notas
+		hasNotes, err := h.db.PropertyHasNotes(p.ID)
+		if err == nil {
+			resp.HasNotes = hasNotes
+		}
+
+		response = append(response, resp)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -81,7 +105,14 @@ func (h *Handler) GetUnratedProperties(w http.ResponseWriter, r *http.Request) {
 
 // GetLikedProperties retorna las propiedades con like
 func (h *Handler) GetLikedProperties(w http.ResponseWriter, r *http.Request) {
-	properties, err := h.db.GetLikedProperties()
+	// Parsear filtros de la solicitud
+	filter, err := parsePropertyFilter(r)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error parsing filters: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	properties, err := h.db.GetLikedProperties(filter)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("error getting liked properties: %v", err), http.StatusInternalServerError)
 		return
@@ -89,7 +120,15 @@ func (h *Handler) GetLikedProperties(w http.ResponseWriter, r *http.Request) {
 
 	response := make([]PropertyResponse, 0, len(properties))
 	for _, p := range properties {
-		response = append(response, h.toPropertyResponse(&p))
+		resp := h.toPropertyResponse(&p)
+
+		// Verificar si la propiedad tiene notas
+		hasNotes, err := h.db.PropertyHasNotes(p.ID)
+		if err == nil {
+			resp.HasNotes = hasNotes
+		}
+
+		response = append(response, resp)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -126,6 +165,84 @@ func (h *Handler) RateProperty(w http.ResponseWriter, r *http.Request) {
 		"success":     true,
 		"property_id": propertyID,
 		"rating":      request.Rating,
+	})
+}
+
+// GetPropertyNotes obtiene las notas de una propiedad
+func (h *Handler) GetPropertyNotes(w http.ResponseWriter, r *http.Request) {
+	propertyID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid property id", http.StatusBadRequest)
+		return
+	}
+
+	notes, err := h.db.GetPropertyNotes(propertyID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error getting property notes: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"notes": notes,
+	})
+}
+
+// AddPropertyNote agrega una nota a una propiedad
+func (h *Handler) AddPropertyNote(w http.ResponseWriter, r *http.Request) {
+	propertyID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid property id", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		Text string `json:"text"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if request.Text == "" {
+		http.Error(w, "note text cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	note := &db.PropertyNote{
+		PropertyID: propertyID,
+		Text:       request.Text,
+	}
+
+	if err := h.db.AddPropertyNote(note); err != nil {
+		http.Error(w, fmt.Sprintf("error adding property note: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"note":    note,
+	})
+}
+
+// DeletePropertyNote elimina una nota de una propiedad
+func (h *Handler) DeletePropertyNote(w http.ResponseWriter, r *http.Request) {
+	noteID, err := strconv.ParseInt(chi.URLParam(r, "noteId"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid note id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.db.DeletePropertyNote(noteID); err != nil {
+		http.Error(w, fmt.Sprintf("error deleting property note: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
 	})
 }
 
@@ -206,4 +323,121 @@ func getString(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// parsePropertyFilter parsea los filtros de la solicitud
+func parsePropertyFilter(r *http.Request) (*db.PropertyFilter, error) {
+	// Si es GET, parsear de query params
+	if r.Method == http.MethodGet {
+		return parseFilterFromQueryParams(r)
+	}
+
+	// Si es POST, parsear del body
+	if r.Method == http.MethodPost {
+		var filter db.PropertyFilter
+		if err := json.NewDecoder(r.Body).Decode(&filter); err != nil {
+			return nil, fmt.Errorf("error decoding filter: %v", err)
+		}
+		return &filter, nil
+	}
+
+	// Por defecto, retornar un filtro vacío
+	return &db.PropertyFilter{}, nil
+}
+
+// parseFilterFromQueryParams parsea los filtros de los query params
+func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
+	filter := &db.PropertyFilter{
+		Currency: "ARS", // Valor por defecto
+	}
+
+	// Tipo de propiedad
+	if propertyType := r.URL.Query().Get("property_type"); propertyType != "" {
+		filter.PropertyType = propertyType
+	}
+
+	// Ubicaciones
+	if locations := r.URL.Query().Get("locations"); locations != "" {
+		filter.Locations = strings.Split(locations, ",")
+	}
+
+	// Características
+	if features := r.URL.Query().Get("features"); features != "" {
+		filter.Features = strings.Split(features, ",")
+	}
+
+	// Precio mínimo
+	if priceMin := r.URL.Query().Get("price_min"); priceMin != "" {
+		min, err := strconv.ParseFloat(priceMin, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid price_min: %v", err)
+		}
+		filter.PriceMin = &min
+	}
+
+	// Precio máximo
+	if priceMax := r.URL.Query().Get("price_max"); priceMax != "" {
+		max, err := strconv.ParseFloat(priceMax, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid price_max: %v", err)
+		}
+		filter.PriceMax = &max
+	}
+
+	// Moneda
+	if currency := r.URL.Query().Get("currency"); currency != "" {
+		filter.Currency = currency
+	}
+
+	// Tamaño mínimo
+	if sizeMin := r.URL.Query().Get("size_min"); sizeMin != "" {
+		min, err := strconv.ParseFloat(sizeMin, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid size_min: %v", err)
+		}
+		filter.SizeMin = &min
+	}
+
+	// Tamaño máximo
+	if sizeMax := r.URL.Query().Get("size_max"); sizeMax != "" {
+		max, err := strconv.ParseFloat(sizeMax, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid size_max: %v", err)
+		}
+		filter.SizeMax = &max
+	}
+
+	// Ambientes
+	if rooms := r.URL.Query().Get("rooms"); rooms != "" {
+		roomsInt, err := strconv.Atoi(rooms)
+		if err != nil {
+			return nil, fmt.Errorf("invalid rooms: %v", err)
+		}
+		filter.Rooms = &roomsInt
+	}
+
+	// Baños
+	if bathrooms := r.URL.Query().Get("bathrooms"); bathrooms != "" {
+		bathroomsInt, err := strconv.Atoi(bathrooms)
+		if err != nil {
+			return nil, fmt.Errorf("invalid bathrooms: %v", err)
+		}
+		filter.Bathrooms = &bathroomsInt
+	}
+
+	// Antigüedad
+	if antiquity := r.URL.Query().Get("antiquity"); antiquity != "" {
+		antiquityInt, err := strconv.Atoi(antiquity)
+		if err != nil {
+			return nil, fmt.Errorf("invalid antiquity: %v", err)
+		}
+		filter.Antiquity = &antiquityInt
+	}
+
+	// Solo con notas
+	if showOnlyWithNotes := r.URL.Query().Get("show_only_with_notes"); showOnlyWithNotes == "true" {
+		filter.ShowOnlyWithNotes = true
+	}
+
+	return filter, nil
 }

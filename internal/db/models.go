@@ -77,3 +77,28 @@ type PropertyRating struct {
 	Rating     string    `db:"rating"` // 'like' o 'dislike'
 	CreatedAt  time.Time `db:"created_at"`
 }
+
+// PropertyNote representa una nota de propiedad en la base de datos
+type PropertyNote struct {
+	ID         int64     `db:"id" json:"id"`
+	PropertyID int64     `db:"property_id" json:"property_id"`
+	Text       string    `db:"note" json:"text"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
+}
+
+// PropertyFilter representa los filtros aplicables a las propiedades
+type PropertyFilter struct {
+	PropertyType      string   `json:"property_type"`
+	Locations         []string `json:"locations"`
+	Features          []string `json:"features"`
+	PriceMin          *float64 `json:"price_min"`
+	PriceMax          *float64 `json:"price_max"`
+	Currency          string   `json:"currency"`
+	SizeMin           *float64 `json:"size_min"`
+	SizeMax           *float64 `json:"size_max"`
+	Rooms             *int     `json:"rooms"`
+	Bathrooms         *int     `json:"bathrooms"`
+	Antiquity         *int     `json:"antiquity"`
+	ShowOnlyWithNotes bool     `json:"show_only_with_notes"`
+}

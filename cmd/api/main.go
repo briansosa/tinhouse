@@ -49,6 +49,11 @@ func main() {
 		r.Get("/properties/unrated", h.GetUnratedProperties)
 		r.Get("/properties/liked", h.GetLikedProperties)
 		r.Put("/properties/{id}/rate", h.RateProperty)
+
+		// Rutas para notas de propiedades
+		r.Get("/properties/{id}/notes", h.GetPropertyNotes)
+		r.Post("/properties/{id}/notes", h.AddPropertyNote)
+		r.Delete("/properties/notes/{noteId}", h.DeletePropertyNote)
 	})
 
 	// Iniciar servidor
