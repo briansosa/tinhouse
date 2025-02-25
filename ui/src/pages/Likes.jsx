@@ -11,9 +11,9 @@ export default function Likes({ setShowNavBar }) {
     const [selectedProperty, setSelectedProperty] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [containerWidth, setContainerWidth] = useState(0);
-    const [contentWidth, setContentWidth] = useState(0);
-    const x = useMotionValue(0);
+    const [containerHeight, setContainerHeight] = useState(0);
+    const [contentHeight, setContentHeight] = useState(0);
+    const y = useMotionValue(0);
     const [showDetails, setShowDetails] = useState(false);
 
     useEffect(() => {
@@ -37,44 +37,38 @@ export default function Likes({ setShowNavBar }) {
         const container = document.getElementById('carousel-container');
         const content = document.getElementById('carousel-content');
         if (container && content) {
-            setContainerWidth(container.offsetWidth);
-            setContentWidth(content.scrollWidth);
+            setContainerHeight(container.offsetHeight);
+            setContentHeight(content.scrollHeight);
+            content.style.touchAction = 'none';
         }
     }, [likedProperties]);
 
-    const bind = useDrag(({ down, movement: [mx], velocity, direction: [dx] }) => {
-        const currentX = x.get();
-        const targetX = currentX + mx;
+    const bind = useDrag(({ down, movement: [mx, my] }) => {
+        const currentY = y.get();
+        const targetY = currentY + my;
         
         // Límites del scroll
-        const minX = -contentWidth + containerWidth;
-        const boundedX = Math.max(minX, Math.min(0, targetX));
+        const minY = -(contentHeight - containerHeight);
+        const boundedY = Math.max(minY, Math.min(0, targetY));
 
-        if (down) {
-            // Durante el drag, movimiento más suave
-            x.set(boundedX);
-        } else {
-            // Al soltar, calculamos la inercia basada en la velocidad
-            const momentum = velocity * dx * 150; // Cambiamos direction por dx
-            const finalX = Math.max(minX, Math.min(0, currentX + momentum));
-            
-            animate(x, finalX, {
+        // Aplicar la posición
+        y.set(boundedY);
+
+        // Si soltamos, aplicar una animación simple para "asentar" el scroll
+        if (!down) {
+            animate(y, boundedY, {
                 type: "spring",
-                damping: 40,
-                stiffness: 90,
-                mass: 0.8,
-                restDelta: 0.01,
-                restSpeed: 0.01,
-                velocity: velocity * dx * 2 // Cambiamos direction por dx
+                damping: 20,
+                stiffness: 200,
+                mass: 0.5
             });
         }
     }, {
-        axis: 'x',
+        axis: 'y',
         filterTaps: true,
-        from: () => [x.get(), 0],
         bounds: {
-            left: -contentWidth + containerWidth,
-            right: 0
+            top: 0,
+            bottom: -(contentHeight - containerHeight)
         },
         rubberband: 0.5
     });
@@ -82,7 +76,6 @@ export default function Likes({ setShowNavBar }) {
     return (
         <div className="h-full bg-white dark:bg-gray-950">
             {!selectedProperty ? (
-                // Vista de cards
                 <div className="h-full">
                     <div className="p-4">
                         <h1 className="text-xl font-semibold dark:text-white mb-4">
@@ -90,25 +83,26 @@ export default function Likes({ setShowNavBar }) {
                         </h1>
                     </div>
                     
-                    <div id="carousel-container" className="px-4 overflow-hidden">
+                    <div id="carousel-container" className="h-[calc(100%-5rem)] overflow-hidden">
                         {isLoading ? (
                             <div>Cargando...</div>
                         ) : (
                             <motion.div 
                                 id="carousel-content"
                                 {...bind()}
-                                style={{ x }}
-                                className="flex gap-2 pb-4"
+                                style={{ y }}
+                                className="flex flex-col gap-4 px-4 touch-none cursor-grab active:cursor-grabbing"
                             >
                                 {likedProperties.map(property => (
-                                    <LikedPropertyCard
-                                        key={property.id}
-                                        property={property}
-                                        onClick={() => {
-                                            setSelectedProperty(property)
-                                            setShowNavBar(false)
-                                        }}
-                                    />
+                                    <div key={property.id}>
+                                        <LikedPropertyCard
+                                            property={property}
+                                            onClick={() => {
+                                                setSelectedProperty(property);
+                                                setShowNavBar(false);
+                                            }}
+                                        />
+                                    </div>
                                 ))}
                             </motion.div>
                         )}
