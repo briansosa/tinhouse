@@ -105,11 +105,11 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
 
         {/* Contenido de la card */}
         <div className="h-full overflow-y-auto select-none">
-          <div className={`relative ${showDetails ? 'h-[40vh]' : 'h-[79vh]'} transition-all duration-300`}>
-            <ImageCarousel property={property} />
-            
             {!showDetails && (
+          <div className={`relative ${showDetails ? 'h-[40vh]' : 'h-[79vh]'} transition-all duration-300`}>
+            
               <>
+                  <ImageCarousel property={property} />
                 <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
                 <div className="absolute bottom-2 left-0 right-0 px-4 text-white pointer-events-none">
                   <h2 className="text-2xl font-bold leading-tight">{property.title}</h2>
@@ -124,20 +124,21 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
                   </div>
                 </div>
               </>
-            )}
 
+          </div>
+           )}
             <button 
               onClick={() => {
                 setShowDetails(!showDetails);
                 setShowNavBar(showDetails);
               }}
               className={`absolute top-4 right-4 bg-white/30 hover:bg-white/50 dark:bg-black/30 dark:hover:bg-black/50 rounded-full p-3 transition-all transform ${showDetails ? 'rotate-180' : ''} z-20`}
-            >
+              >
               <svg className="w-6 h-6" fill="none" stroke="white" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
             </button>
-          </div>
+           
 
           {showDetails && (
             <div className="pb-16">

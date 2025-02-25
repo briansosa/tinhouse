@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { getLikedProperties } from '../services/api';
 import LikedPropertyCard from '../components/LikedPropertyCard/LikedPropertyCard';
+import PropertyNotes from '../components/PropertyNotes/PropertyNotes';
 import { useDrag } from '@use-gesture/react';
 import { motion, useMotionValue, animate } from 'framer-motion';
+import PropertyDetails from '../components/PropertyDetails/PropertyDetails';
 
-export default function Likes() {
+export default function Likes({ setShowNavBar }) {
     const [likedProperties, setLikedProperties] = useState([]);
+    const [selectedProperty, setSelectedProperty] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [containerWidth, setContainerWidth] = useState(0);
     const [contentWidth, setContentWidth] = useState(0);
     const x = useMotionValue(0);
+    const [showDetails, setShowDetails] = useState(false);
 
     useEffect(() => {
         const fetchLikedProperties = async () => {
@@ -51,17 +55,17 @@ export default function Likes() {
             x.set(boundedX);
         } else {
             // Al soltar, calculamos la inercia basada en la velocidad
-            const momentum = velocity * direction * 150; // Aumentamos el factor de inercia
+            const momentum = velocity * dx * 150; // Cambiamos direction por dx
             const finalX = Math.max(minX, Math.min(0, currentX + momentum));
             
             animate(x, finalX, {
                 type: "spring",
-                damping: 40,      // Más resistencia para control
-                stiffness: 90,    // Menos rigidez para movimiento más suave
-                mass: 0.8,        // Masa equilibrada
-                restDelta: 0.01,  // Precisión del punto de reposo
-                restSpeed: 0.01,  // Velocidad mínima para considerar reposo
-                velocity: velocity * direction * 2 // Duplicamos la velocidad inicial
+                damping: 40,
+                stiffness: 90,
+                mass: 0.8,
+                restDelta: 0.01,
+                restSpeed: 0.01,
+                velocity: velocity * dx * 2 // Cambiamos direction por dx
             });
         }
     }, {
@@ -72,51 +76,65 @@ export default function Likes() {
             left: -contentWidth + containerWidth,
             right: 0
         },
-        rubberband: 0.5,  // Más elasticidad en los límites
-        delay: 0,
+        rubberband: 0.5
     });
 
     return (
         <div className="h-full bg-white dark:bg-gray-950">
-            <div className="p-4">
-                <h1 className="text-xl font-semibold dark:text-white mb-4">
-                    Tus Favoritos
-                </h1>
-            </div>
-            
-            <div id="carousel-container" className="px-4 overflow-hidden">
-                {isLoading ? (
-                    <div className="flex items-center justify-center w-full p-4">
-                        <div className="text-gray-500 dark:text-gray-400">
-                            Cargando propiedades...
-                        </div>
+            {!selectedProperty ? (
+                // Vista de cards
+                <div className="h-full">
+                    <div className="p-4">
+                        <h1 className="text-xl font-semibold dark:text-white mb-4">
+                            Tus Favoritos
+                        </h1>
                     </div>
-                ) : error ? (
-                    <div className="flex items-center justify-center w-full p-4">
-                        <div className="text-red-500">{error}</div>
+                    
+                    <div id="carousel-container" className="px-4 overflow-hidden">
+                        {isLoading ? (
+                            <div>Cargando...</div>
+                        ) : (
+                            <motion.div 
+                                id="carousel-content"
+                                {...bind()}
+                                style={{ x }}
+                                className="flex gap-2 pb-4"
+                            >
+                                {likedProperties.map(property => (
+                                    <LikedPropertyCard
+                                        key={property.id}
+                                        property={property}
+                                        onClick={() => {
+                                            setSelectedProperty(property)
+                                            setShowNavBar(false)
+                                        }}
+                                    />
+                                ))}
+                            </motion.div>
+                        )}
                     </div>
-                ) : likedProperties.length === 0 ? (
-                    <div className="flex items-center justify-center w-full p-4">
-                        <div className="text-gray-500 dark:text-gray-400">
-                            No tienes propiedades favoritas aún
-                        </div>
-                    </div>
-                ) : (
-                    <motion.div 
-                        id="carousel-content"
-                        {...bind()}
-                        style={{ x }}
-                        className="flex gap-2 pb-4 touch-none cursor-grab active:cursor-grabbing"
-                    >
-                        {likedProperties.map(property => (
-                            <LikedPropertyCard
-                                key={property.id}
-                                property={property}
-                            />
-                        ))}
-                    </motion.div>
-                )}
-            </div>
+                </div>
+            ) : showDetails ? (
+                <PropertyDetails 
+                    property={selectedProperty}
+                    onClose={() => {
+                        setShowDetails(false);
+                        setShowNavBar(false);
+                    }}
+                />
+            ) : (
+                <PropertyNotes 
+                    property={selectedProperty}
+                    onClose={() => {
+                        setSelectedProperty(null);
+                        setShowNavBar(true);
+                    }}
+                    onImageClick={() => {
+                        setShowDetails(true);
+                        setShowNavBar(false);
+                    }}
+                />
+            )}
         </div>
     );
 }
