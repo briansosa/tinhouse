@@ -6,15 +6,44 @@ export default function Home({ setShowNavBar }) {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState([]); // Historial de propiedades descartadas
+  const [globalFilters, setGlobalFilters] = useState(null);
 
   useEffect(() => {
+    // Cargar los filtros globales del localStorage
+    const savedFilters = localStorage.getItem('globalFilters');
+    if (savedFilters) {
+      setGlobalFilters(JSON.parse(savedFilters));
+    }
+    
     loadProperties();
+  }, []);
+
+  // Efecto para recargar propiedades cuando cambien los filtros globales
+  useEffect(() => {
+    if (globalFilters) {
+      loadProperties();
+    }
+  }, [globalFilters]);
+
+  // Efecto para detectar cambios en los filtros globales en localStorage
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const savedFilters = localStorage.getItem('globalFilters');
+      if (savedFilters) {
+        setGlobalFilters(JSON.parse(savedFilters));
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const loadProperties = async () => {
     setLoading(true);
     try {
-      const response = await getUnratedProperties();
+      const response = await getUnratedProperties(globalFilters);
       setProperties(response.data.properties || []);
     } catch (error) {
       console.error('Error fetching properties:', error);

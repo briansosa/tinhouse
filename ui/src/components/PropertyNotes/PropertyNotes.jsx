@@ -105,7 +105,7 @@ export default function PropertyNotes({ property, onClose, onImageClick, onDisli
                 
                 {/* Botón de favorito */}
                 <div 
-                    className="p-2 rounded-full cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="p-2 rounded-full cursor-pointer transition-all duration-200"
                     onClick={handleToggleFavorite}
                     onMouseEnter={() => setIsHeartHovered(true)}
                     onMouseLeave={() => setIsHeartHovered(false)}
@@ -116,7 +116,7 @@ export default function PropertyNotes({ property, onClose, onImageClick, onDisli
                                 ? 'text-red-500 fill-current' 
                                 : isHeartHovered 
                                     ? 'text-red-400 fill-red-300' 
-                                    : 'fill-none stroke-red-300 stroke-1'
+                                    : 'fill-none stroke-gray-300 stroke-1'
                         }`} 
                         viewBox="0 0 24 24"
                     >

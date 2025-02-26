@@ -1,32 +1,38 @@
-import { useState } from 'react';
-import FilterDrawer from './FilterDrawer';
-import PriceRangeFilter from './PriceRangeFilter';
-import LocationFilter from './LocationFilter';
-import FeaturesFilter from './FeaturesFilter';
-import SizeRangeFilter from './SizeRangeFilter';
-import RoomsFilter from './RoomsFilter';
-import AntiquityFilter from './AntiquityFilter';
-import FilterChips from './FilterChips';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import FilterChips from '../components/Filters/FilterChips';
+import FilterDrawer from '../components/Filters/FilterDrawer';
+import PriceRangeFilter from '../components/Filters/PriceRangeFilter';
+import LocationFilter from '../components/Filters/LocationFilter';
+import FeaturesFilter from '../components/Filters/FeaturesFilter';
+import SizeRangeFilter from '../components/Filters/SizeRangeFilter';
+import RoomsFilter from '../components/Filters/RoomsFilter';
+import AntiquityFilter from '../components/Filters/AntiquityFilter';
 
-const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
-    const [filters, setFilters] = useState(initialFilters || {
-        propertyType: 'all',
-        showOnlyWithNotes: false,
-        showOnlyFavorites: false,
-        priceRange: {
-            min: null,
-            max: null,
-            currency: 'ARS'
-        },
-        locations: [],
-        features: [],
-        sizeRange: {
-            min: null,
-            max: null
-        },
-        rooms: null,
-        bathrooms: null,
-        antiquity: null
+export default function Settings({ setShowNavBar }) {
+    const navigate = useNavigate();
+    const [filters, setFilters] = useState(() => {
+        // Intentar cargar los filtros guardados del localStorage
+        const savedFilters = localStorage.getItem('globalFilters');
+        return savedFilters ? JSON.parse(savedFilters) : {
+            propertyType: 'all',
+            showOnlyWithNotes: false,
+            showOnlyFavorites: false,
+            priceRange: {
+                min: null,
+                max: null,
+                currency: 'ARS'
+            },
+            locations: [],
+            features: [],
+            sizeRange: {
+                min: null,
+                max: null
+            },
+            rooms: null,
+            bathrooms: null,
+            antiquity: null
+        };
     });
 
     const [showPropertyTypeDrawer, setShowPropertyTypeDrawer] = useState(false);
@@ -37,6 +43,10 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [showRoomsDrawer, setShowRoomsDrawer] = useState(false);
     const [showBathroomsDrawer, setShowBathroomsDrawer] = useState(false);
     const [showAntiquityDrawer, setShowAntiquityDrawer] = useState(false);
+
+    useEffect(() => {
+        setShowNavBar(true);
+    }, [setShowNavBar]);
 
     const propertyTypes = [
         { id: 'all', label: 'Todas' },
@@ -78,7 +88,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     };
 
     const resetFilters = () => {
-        setFilters({
+        const defaultFilters = {
             propertyType: 'all',
             showOnlyWithNotes: false,
             showOnlyFavorites: false,
@@ -96,25 +106,14 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             rooms: null,
             bathrooms: null,
             antiquity: null
-        });
+        };
+        setFilters(defaultFilters);
+        localStorage.setItem('globalFilters', JSON.stringify(defaultFilters));
     };
 
-    // Verificar si hay filtros activos
-    const hasActiveFilters = () => {
-        return (
-            filters.propertyType !== 'all' ||
-            filters.showOnlyWithNotes ||
-            filters.showOnlyFavorites ||
-            filters.priceRange.min !== null ||
-            filters.priceRange.max !== null ||
-            filters.locations.length > 0 ||
-            filters.features.length > 0 ||
-            filters.sizeRange.min !== null ||
-            filters.sizeRange.max !== null ||
-            filters.rooms !== null ||
-            filters.bathrooms !== null ||
-            filters.antiquity !== null
-        );
+    const saveFilters = () => {
+        localStorage.setItem('globalFilters', JSON.stringify(filters));
+        navigate('/');
     };
 
     return (
@@ -123,14 +122,14 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                     <button 
-                        onClick={onClose}
+                        onClick={() => navigate('/')}
                         className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
                     >
                         <svg className="w-6 h-6 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
-                    <h1 className="text-xl font-bold text-gray-800 dark:text-white">Filtros</h1>
+                    <h1 className="text-xl font-bold text-gray-800 dark:text-white">Configuración</h1>
                     <button 
                         onClick={resetFilters}
                         className="text-blue-500 font-medium"
@@ -311,13 +310,13 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                 </div>
             </div>
 
-            {/* Botón de aplicar */}
+            {/* Botón de guardar */}
             <div className="p-4 bg-gray-950 border-t border-gray-800">
                 <button 
-                    onClick={() => onApplyFilters(filters)}
+                    onClick={saveFilters}
                     className="w-full p-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl shadow-md transition-colors"
                 >
-                    Aplicar
+                    Guardar
                 </button>
             </div>
 
@@ -442,6 +441,4 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             />
         </div>
     );
-}
-
-export default Filters;
+} 

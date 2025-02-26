@@ -36,22 +36,53 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
     };
 
     return (
-        <div className="space-y-12 px-4">
-            {/* Toggle de moneda */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800">
-                <span className="text-md text-gray-300">$/USD</span>
+        <div className="p-4 space-y-6">
+            {/* Selector de moneda */}
+            <div className="flex justify-center space-x-2">
                 <button 
-                    onClick={handleCurrencyToggle}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
-                        currency === 'USD' ? 'bg-blue-500' : 'bg-gray-600'
+                    onClick={() => handleCurrencyToggle()}
+                    className={`px-4 py-2 rounded-full text-sm font-medium ${
+                        currency === 'ARS' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
                     }`}
                 >
-                    <span 
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-                            currency === 'USD' ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                    />
+                    {currency === 'ARS' ? 'ARS' : 'USD'}
                 </button>
+            </div>
+
+            {/* Inputs de rango */}
+            <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mínimo</label>
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-3 flex items-center text-gray-500 dark:text-gray-400">
+                            {currency === 'ARS' ? '$' : 'US$'}
+                        </span>
+                        <input
+                            type="number"
+                            value={range.min || ''}
+                            onChange={(e) => handleSliderChange('min')(e)}
+                            placeholder="Mínimo"
+                            className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                </div>
+                <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Máximo</label>
+                    <div className="relative">
+                        <span className="absolute inset-y-0 left-3 flex items-center text-gray-500 dark:text-gray-400">
+                            {currency === 'ARS' ? '$' : 'US$'}
+                        </span>
+                        <input
+                            type="number"
+                            value={range.max || ''}
+                            onChange={(e) => handleSliderChange('max')(e)}
+                            placeholder="Máximo"
+                            className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+                </div>
             </div>
 
             {/* Valores seleccionados */}

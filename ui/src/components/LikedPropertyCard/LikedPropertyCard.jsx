@@ -63,7 +63,7 @@ export default function LikedPropertyCard({ property, onClick, onToggleFavorite 
                                 ? 'text-red-500 fill-current' 
                                 : isHovered 
                                     ? 'text-red-400 fill-red-300' 
-                                    : 'fill-none stroke-red-300 stroke-1'
+                                    : 'fill-none stroke-gray-300 stroke-1'
                         }`} 
                         viewBox="0 0 24 24"
                     >

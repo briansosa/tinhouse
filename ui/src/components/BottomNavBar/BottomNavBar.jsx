@@ -24,14 +24,14 @@ export default function BottomNavBar({ show }) {
                 onAnimationComplete={() => {
                     hasAnimated.current = true;
                 }}
-                className="fixed bottom-0 left-0 right-0 h-16 bg-white/80 dark:bg-gray-950 backdrop-blur-lg border-t border-gray-200/20 dark:border-gray-800/20 z-50"
+                className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-900/20 backdrop-blur-lg border-t border-gray-200 dark:border-gray-900/20 z-50"
                 style={{ maxWidth: "448px", margin: "0 auto" }}
             >
                 <div className="flex justify-around items-center h-full px-2">
                     <Link 
                         to="/" 
                         className={`flex flex-col items-center transition-colors ${
-                            location.pathname === '/' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'
+                            location.pathname === '/' ? 'text-green-500' : 'text-gray-500 dark:text-gray-300 hover:text-green-500'
                         }`}
                     >
                         <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,7 +42,7 @@ export default function BottomNavBar({ show }) {
                     <Link 
                         to="/likes" 
                         className={`flex flex-col items-center transition-colors ${
-                            location.pathname === '/likes' ? 'text-green-500' : 'text-gray-400 hover:text-green-500'
+                            location.pathname === '/likes' ? 'text-green-500' : 'text-gray-500 dark:text-gray-300 hover:text-green-500'
                         }`}
                     >
                         <svg className="w-7 h-7" viewBox="0 0 24 24" fill="currentColor">
@@ -50,13 +50,16 @@ export default function BottomNavBar({ show }) {
                         </svg>
                     </Link>
 
-                    <button 
-                        className="flex flex-col items-center text-gray-400 hover:text-green-500 transition-colors"
+                    <Link 
+                        to="/settings" 
+                        className={`flex flex-col items-center text-gray-500 dark:text-gray-300 hover:text-green-500 transition-colors ${
+                            location.pathname === '/settings' ? 'text-green-500' : 'text-gray-500 dark:text-gray-300 hover:text-green-500'
+                        }`}
                     >
                         <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                         </svg>
-                    </button>
+                    </Link>
                 </div>
             </motion.div>
         </AnimatePresence>
