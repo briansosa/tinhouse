@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getLikedProperties, togglePropertyFavorite } from '../services/api';
+import { getLikedProperties, togglePropertyFavorite, dislikeProperty } from '../services/api';
 import LikedPropertyCard from '../components/LikedPropertyCard/LikedPropertyCard';
 import PropertyNotes from '../components/PropertyNotes/PropertyNotes';
 import { useDrag } from '@use-gesture/react';
@@ -173,6 +173,23 @@ export default function Likes({ setShowNavBar }) {
             );
         } catch (error) {
             console.error('Error toggling favorite:', error);
+        }
+    };
+
+    // Manejador para dar dislike a una propiedad
+    const handleDislike = async (propertyId) => {
+        try {
+            await dislikeProperty(propertyId);
+            // Actualizar la lista de propiedades eliminando la que recibió dislike
+            setLikedProperties(prevProperties => 
+                prevProperties.filter(property => property.id !== propertyId)
+            );
+            // Cerrar la vista de detalles o notas
+            setSelectedProperty(null);
+            setShowDetails(false);
+            setShowNavBar(true);
+        } catch (error) {
+            console.error('Error marking property as dislike:', error);
         }
     };
 
@@ -351,6 +368,7 @@ export default function Likes({ setShowNavBar }) {
                         setShowDetails(false);
                         setShowNavBar(false);
                     }}
+                    onDislike={() => handleDislike(selectedProperty.id)}
                 />
             ) : (
                 <PropertyNotes 
@@ -363,6 +381,7 @@ export default function Likes({ setShowNavBar }) {
                         setShowDetails(true);
                         setShowNavBar(false);
                     }}
+                    onDislike={() => handleDislike(selectedProperty.id)}
                 />
             )}
         </div>

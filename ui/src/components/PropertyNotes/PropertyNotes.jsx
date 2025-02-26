@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { getPropertyNotes, addPropertyNote, deletePropertyNote, togglePropertyFavorite } from '../../services/api';
+import { getPropertyNotes, addPropertyNote, deletePropertyNote, togglePropertyFavorite, dislikeProperty } from '../../services/api';
 
-export default function PropertyNotes({ property, onClose, onImageClick }) {
+export default function PropertyNotes({ property, onClose, onImageClick, onDislike }) {
     const [notes, setNotes] = useState([]);
     const [newNote, setNewNote] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isFavorite, setIsFavorite] = useState(property.is_favorite);
     const [isHeartHovered, setIsHeartHovered] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
 
     // Cargar notas desde la API
     useEffect(() => {
@@ -64,6 +65,20 @@ export default function PropertyNotes({ property, onClose, onImageClick }) {
         }
     };
 
+    const handleDislike = async () => {
+        try {
+            if (onDislike) {
+                onDislike();
+            } else {
+                await dislikeProperty(property.id);
+                setShowMenu(false);
+                if (onClose) onClose();
+            }
+        } catch (err) {
+            console.error('Error al marcar como dislike:', err);
+        }
+    };
+
     return (
         <div className="h-full flex flex-col bg-white dark:bg-gray-950">
             {/* Header */}
@@ -107,6 +122,35 @@ export default function PropertyNotes({ property, onClose, onImageClick }) {
                     >
                         <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
                     </svg>
+                </div>
+
+                {/* Botón de menú (tres puntos) */}
+                <div className="relative">
+                    <button 
+                        className="p-2 rounded-full cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 ml-1"
+                        onClick={() => setShowMenu(!showMenu)}
+                    >
+                        <svg className="w-6 h-6 dark:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                    </button>
+
+                    {/* Menú desplegable */}
+                    {showMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10">
+                            <div className="py-1">
+                                <button 
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
+                                    onClick={handleDislike}
+                                >
+                                    <svg className="w-5 h-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5" />
+                                    </svg>
+                                    Ya no me gusta
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

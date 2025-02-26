@@ -25,6 +25,9 @@ export const getLikedProperties = (filters = null) => {
 
 export const rateProperty = (id, rating) => api.put(`/properties/${id}/rate`, { rating });
 
+// Función para marcar una propiedad como dislike
+export const dislikeProperty = (id) => api.put(`/properties/${id}/rate`, { rating: 'dislike' });
+
 // Función para marcar/desmarcar una propiedad como favorita
 export const togglePropertyFavorite = (id, isFavorite) => api.put(`/properties/${id}/favorite`, { is_favorite: isFavorite });
 
