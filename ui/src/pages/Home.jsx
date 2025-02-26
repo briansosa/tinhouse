@@ -77,7 +77,7 @@ export default function Home({ setShowNavBar }) {
   }
 
   return (
-    <div className="h-full">
+    <div className="h-full pb-16 bg-gray-950 dark:bg-gray-950">
       {properties.length > 0 ? (
         <PropertyCard 
           property={properties[0]}

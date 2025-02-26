@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import FilterChips from '../components/Filters/FilterChips';
 import FilterDrawer from '../components/Filters/FilterDrawer';
 import PriceRangeFilter from '../components/Filters/PriceRangeFilter';
 import LocationFilter from '../components/Filters/LocationFilter';
@@ -35,6 +34,12 @@ export default function Settings({ setShowNavBar }) {
         };
     });
 
+    // Estado para el tema
+    const [themeMode, setThemeMode] = useState(() => {
+        const savedTheme = localStorage.getItem('themeMode');
+        return savedTheme || 'auto';
+    });
+
     const [showPropertyTypeDrawer, setShowPropertyTypeDrawer] = useState(false);
     const [showPriceRangeDrawer, setShowPriceRangeDrawer] = useState(false);
     const [showLocationDrawer, setShowLocationDrawer] = useState(false);
@@ -43,9 +48,10 @@ export default function Settings({ setShowNavBar }) {
     const [showRoomsDrawer, setShowRoomsDrawer] = useState(false);
     const [showBathroomsDrawer, setShowBathroomsDrawer] = useState(false);
     const [showAntiquityDrawer, setShowAntiquityDrawer] = useState(false);
+    const [showThemeDrawer, setShowThemeDrawer] = useState(false);
 
     useEffect(() => {
-        setShowNavBar(true);
+        setShowNavBar(false);
     }, [setShowNavBar]);
 
     const propertyTypes = [
@@ -55,7 +61,14 @@ export default function Settings({ setShowNavBar }) {
         { id: 'ph', label: 'PH' }
     ];
 
+    const themeOptions = [
+        { id: 'light', label: 'Claro' },
+        { id: 'dark', label: 'Oscuro' },
+        { id: 'auto', label: 'Automático (según hora)' }
+    ];
+
     const selectedPropertyType = propertyTypes.find(type => type.id === filters.propertyType);
+    const selectedTheme = themeOptions.find(theme => theme.id === themeMode);
 
     const formatPrice = (price) => {
         if (price === null) return 'Sin límite';
@@ -78,13 +91,6 @@ export default function Settings({ setShowNavBar }) {
         if (!max) return `Desde ${min} m²`;
         if (!min) return `Hasta ${max} m²`;
         return `${min} - ${max} m²`;
-    };
-
-    const handleRemoveFilter = (filterName, defaultValue) => {
-        setFilters(prev => ({
-            ...prev,
-            [filterName]: defaultValue
-        }));
     };
 
     const resetFilters = () => {
@@ -113,7 +119,23 @@ export default function Settings({ setShowNavBar }) {
 
     const saveFilters = () => {
         localStorage.setItem('globalFilters', JSON.stringify(filters));
-        navigate('/');
+        localStorage.setItem('themeMode', themeMode);
+        
+        // Aplicar el tema según la selección
+        const hour = new Date().getHours();
+        const isDarkHours = hour < 7 || hour > 19; // Oscuro entre 7pm y 7am
+        
+        // Solo actualizamos el tema actual (theme) basado en el modo seleccionado (themeMode)
+        if (themeMode === 'light') {
+            localStorage.setItem('theme', 'light');
+        } else if (themeMode === 'dark') {
+            localStorage.setItem('theme', 'dark');
+        } else if (themeMode === 'auto') {
+            localStorage.setItem('theme', isDarkHours ? 'dark' : 'light');
+        }
+        
+        // Recargar la página para aplicar los cambios de tema
+        window.location.href = '/';
     };
 
     return (
@@ -121,138 +143,124 @@ export default function Settings({ setShowNavBar }) {
             {/* Header */}
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                    <button 
-                        onClick={() => navigate('/')}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
-                    >
-                        <svg className="w-6 h-6 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
                     <h1 className="text-xl font-bold text-gray-800 dark:text-white">Configuración</h1>
                     <button 
-                        onClick={resetFilters}
-                        className="text-blue-500 font-medium"
+                        onClick={saveFilters}
+                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg"
                     >
-                        Limpiar
+                        OK
                     </button>
                 </div>
             </div>
 
-            {/* Chips de filtros activos */}
-            <FilterChips 
-                filters={filters} 
-                onRemove={handleRemoveFilter} 
-            />
-
             {/* Contenido */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-28">
                 {/* Tipo de propiedad */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Tipo de propiedad</h2>
-                    <button 
-                        onClick={() => setShowPropertyTypeDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{selectedPropertyType?.label || 'Todas'}</span>
+                <button 
+                    onClick={() => setShowPropertyTypeDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Tipo de propiedad</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{selectedPropertyType?.label || 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Rango de precio */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Precio</h2>
-                    <button 
-                        onClick={() => setShowPriceRangeDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{getPriceRangeLabel()}</span>
+                <button 
+                    onClick={() => setShowPriceRangeDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Precio</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{getPriceRangeLabel()}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Ubicación */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Ubicación</h2>
-                    <button 
-                        onClick={() => setShowLocationDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.locations.length ? `${filters.locations.length} seleccionados` : 'Todas'}</span>
+                <button 
+                    onClick={() => setShowLocationDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Ubicación</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.locations.length ? `${filters.locations.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Tamaño */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Tamaño</h2>
-                    <button 
-                        onClick={() => setShowSizeRangeDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{getSizeRangeLabel()}</span>
+                <button 
+                    onClick={() => setShowSizeRangeDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Tamaño</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{getSizeRangeLabel()}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Ambientes */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Ambientes</h2>
-                    <button 
-                        onClick={() => setShowRoomsDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.rooms ? `${filters.rooms}+` : 'Todos'}</span>
+                <button 
+                    onClick={() => setShowRoomsDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Ambientes</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.rooms ? `${filters.rooms}+` : 'Todos'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Baños */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Baños</h2>
-                    <button 
-                        onClick={() => setShowBathroomsDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.bathrooms ? `${filters.bathrooms}+` : 'Todos'}</span>
+                <button 
+                    onClick={() => setShowBathroomsDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Baños</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.bathrooms ? `${filters.bathrooms}+` : 'Todos'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Características */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Características</h2>
-                    <button 
-                        onClick={() => setShowFeaturesDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.features.length ? `${filters.features.length} seleccionados` : 'Todas'}</span>
+                <button 
+                    onClick={() => setShowFeaturesDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Características</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.features.length ? `${filters.features.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Antigüedad */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Antigüedad</h2>
-                    <button 
-                        onClick={() => setShowAntiquityDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.antiquity !== null ? (
+                <button 
+                    onClick={() => setShowAntiquityDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Antigüedad</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.antiquity !== null ? (
                             filters.antiquity === 0 ? 'A estrenar' :
                             filters.antiquity === 100 ? 'Más de 30 años' :
                             `Hasta ${filters.antiquity} años`
@@ -260,64 +268,31 @@ export default function Settings({ setShowNavBar }) {
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
-                {/* Otros filtros */}
-                <div>
+
+                {/* Ajustes generales */}
+                <div className="mt-8">
                     <h3 className="text-sm font-bold text-gray-400 tracking-wider uppercase mb-4">
-                        OTROS FILTROS
+                        AJUSTES GENERALES
                     </h3>
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-gray-700">
-                            <span className="text-md text-gray-700 dark:text-gray-200">Solo propiedades con notas</span>
-                            <button 
-                                onClick={() => setFilters(prev => ({ 
-                                    ...prev, 
-                                    showOnlyWithNotes: !prev.showOnlyWithNotes 
-                                }))}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
-                                    filters.showOnlyWithNotes ? 'bg-blue-500' : 'bg-gray-600'
-                                }`}
-                            >
-                                <span 
-                                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-                                        filters.showOnlyWithNotes ? 'translate-x-6' : 'translate-x-1'
-                                    }`}
-                                />
-                            </button>
-                        </div>
-                        
-                        <div className="flex items-center justify-between p-4 rounded-xl bg-gray-100 dark:bg-gray-700">
-                            <span className="text-md text-gray-700 dark:text-gray-200">Solo propiedades favoritas</span>
-                            <button 
-                                onClick={() => setFilters(prev => ({ 
-                                    ...prev, 
-                                    showOnlyFavorites: !prev.showOnlyFavorites 
-                                }))}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
-                                    filters.showOnlyFavorites ? 'bg-blue-500' : 'bg-gray-600'
-                                }`}
-                            >
-                                <span 
-                                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-                                        filters.showOnlyFavorites ? 'translate-x-6' : 'translate-x-1'
-                                    }`}
-                                />
-                            </button>
-                        </div>
+                        {/* Tema */}
+                        <button 
+                            onClick={() => setShowThemeDrawer(true)}
+                            className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                        >
+                            <span className="text-gray-700 dark:text-gray-200">Tema</span>
+                            <div className="flex items-center">
+                                <span className="text-gray-500 dark:text-gray-400 mr-2">{selectedTheme?.label || 'Automático'}</span>
+                                <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </div>
+                        </button>
                     </div>
                 </div>
-            </div>
-
-            {/* Botón de guardar */}
-            <div className="p-4 bg-gray-950 border-t border-gray-800">
-                <button 
-                    onClick={saveFilters}
-                    className="w-full p-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl shadow-md transition-colors"
-                >
-                    Guardar
-                </button>
             </div>
 
             {/* Drawers */}
@@ -438,6 +413,18 @@ export default function Settings({ setShowNavBar }) {
                         }))}
                     />
                 }
+            />
+
+            <FilterDrawer 
+                isOpen={showThemeDrawer}
+                onClose={() => setShowThemeDrawer(false)}
+                title="TEMA"
+                options={themeOptions}
+                selectedValue={themeMode}
+                onSelect={(value) => {
+                    setThemeMode(value);
+                    setShowThemeDrawer(false);
+                }}
             />
         </div>
     );

@@ -24,7 +24,7 @@ export default function BottomNavBar({ show }) {
                 onAnimationComplete={() => {
                     hasAnimated.current = true;
                 }}
-                className="fixed bottom-0 left-0 right-0 h-16 bg-white/90 dark:bg-gray-900/20 backdrop-blur-lg border-t border-gray-200 dark:border-gray-900/20 z-50"
+                className="absolute bottom-0 left-0 right-0 h-16 bg-gray-950 dark:bg-gray-950 border-t border-gray-800 dark:border-gray-800 z-10"
                 style={{ maxWidth: "448px", margin: "0 auto" }}
             >
                 <div className="flex justify-around items-center h-full px-2">

@@ -194,9 +194,9 @@ export default function Likes({ setShowNavBar }) {
     };
 
     return (
-        <div className="h-full bg-white dark:bg-gray-950">
+        <div className="h-full bg-gray-950 dark:bg-gray-950">
             {!selectedProperty ? (
-                <div className="h-full relative">
+                <div className="h-full relative pb-16">
                     <div className="p-4">
                         <div className="flex items-center justify-between mb-4">
                             <h1 className="text-xl font-semibold dark:text-white">
@@ -251,8 +251,8 @@ export default function Likes({ setShowNavBar }) {
                         )}
                     </div>
                     
-                    {/* Filtros rápidos */}
-                    <div className="px-4 mb-4 flex gap-2">
+                    {/* Filtros rápidos de botones */}
+                    <div className="px-4 mb-2 flex gap-2">
                         <button
                             className={`px-3 py-1.5 rounded-full text-sm ${
                                 activeFilters.showOnlyWithNotes
@@ -300,16 +300,19 @@ export default function Likes({ setShowNavBar }) {
                         </button>
                     </div>
                     
-                    {/* Chips de filtros activos */}
-                    {hasActiveFilters() && (
-                        <FilterChips 
-                            filters={activeFilters} 
-                            onRemove={handleRemoveFilter} 
-                        />
-                    )}
+                    {/* Filtros rápidos */}
+                    <FilterChips 
+                        filters={activeFilters} 
+                        onRemove={(key, value) => {
+                            const updatedFilters = { ...activeFilters, [key]: value };
+                            setActiveFilters(updatedFilters);
+                            fetchLikedProperties(updatedFilters);
+                        }} 
+                    />
                     
+                    {/* Contenido principal */}
                     <div id="carousel-container" 
-                        className={`h-[calc(100%-8rem)] overflow-hidden transition-all duration-300 ${
+                        className={`h-[calc(100%-9rem)] overflow-hidden transition-all duration-300 ${
                             showFilters ? 'hidden' : ''
                         }`}
                     >
@@ -317,16 +320,20 @@ export default function Likes({ setShowNavBar }) {
                             <div className="flex justify-center items-center h-full">
                                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                             </div>
+                        ) : error ? (
+                            <div className="text-center py-20 text-red-500">
+                                {error}
+                            </div>
                         ) : filteredProperties.length > 0 ? (
                             <motion.div 
                                 id="carousel-content"
-                                {...bind()}
                                 style={{ y }}
                                 className="flex flex-col gap-4 px-4 touch-none cursor-grab active:cursor-grabbing"
+                                {...bind()}
                             >
                                 {filteredProperties.map(property => (
                                     <div key={property.id}>
-                                        <LikedPropertyCard
+                                        <LikedPropertyCard 
                                             property={property}
                                             onClick={() => {
                                                 setSelectedProperty(property);

@@ -6,7 +6,6 @@ import FeaturesFilter from './FeaturesFilter';
 import SizeRangeFilter from './SizeRangeFilter';
 import RoomsFilter from './RoomsFilter';
 import AntiquityFilter from './AntiquityFilter';
-import FilterChips from './FilterChips';
 
 const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [filters, setFilters] = useState(initialFilters || {
@@ -70,13 +69,6 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         return `${min} - ${max} m²`;
     };
 
-    const handleRemoveFilter = (filterName, defaultValue) => {
-        setFilters(prev => ({
-            ...prev,
-            [filterName]: defaultValue
-        }));
-    };
-
     const resetFilters = () => {
         setFilters({
             propertyType: 'all',
@@ -132,128 +124,122 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                     </button>
                     <h1 className="text-xl font-bold text-gray-800 dark:text-white">Filtros</h1>
                     <button 
-                        onClick={resetFilters}
-                        className="text-blue-500 font-medium"
+                        onClick={() => onApplyFilters(filters)}
+                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg"
                     >
-                        Limpiar
+                        OK
                     </button>
                 </div>
             </div>
 
-            {/* Chips de filtros activos */}
-            <FilterChips 
-                filters={filters} 
-                onRemove={handleRemoveFilter} 
-            />
-
             {/* Contenido */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 pb-16">
                 {/* Tipo de propiedad */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Tipo de propiedad</h2>
-                    <button 
-                        onClick={() => setShowPropertyTypeDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{selectedPropertyType?.label || 'Todas'}</span>
+                <button 
+                    onClick={() => setShowPropertyTypeDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Tipo de propiedad</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{selectedPropertyType?.label || 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Rango de precio */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Precio</h2>
-                    <button 
-                        onClick={() => setShowPriceRangeDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{getPriceRangeLabel()}</span>
+                <button 
+                    onClick={() => setShowPriceRangeDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Precio</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{getPriceRangeLabel()}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Ubicación */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Ubicación</h2>
-                    <button 
-                        onClick={() => setShowLocationDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.locations.length ? `${filters.locations.length} seleccionados` : 'Todas'}</span>
+                <button 
+                    onClick={() => setShowLocationDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Ubicación</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.locations.length ? `${filters.locations.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Tamaño */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Tamaño</h2>
-                    <button 
-                        onClick={() => setShowSizeRangeDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{getSizeRangeLabel()}</span>
+                <button 
+                    onClick={() => setShowSizeRangeDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Tamaño</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{getSizeRangeLabel()}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Ambientes */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Ambientes</h2>
-                    <button 
-                        onClick={() => setShowRoomsDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.rooms ? `${filters.rooms}+` : 'Todos'}</span>
+                <button 
+                    onClick={() => setShowRoomsDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Ambientes</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.rooms ? `${filters.rooms}+` : 'Todos'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Baños */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Baños</h2>
-                    <button 
-                        onClick={() => setShowBathroomsDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.bathrooms ? `${filters.bathrooms}+` : 'Todos'}</span>
+                <button 
+                    onClick={() => setShowBathroomsDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Baños</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.bathrooms ? `${filters.bathrooms}+` : 'Todos'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Características */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Características</h2>
-                    <button 
-                        onClick={() => setShowFeaturesDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.features.length ? `${filters.features.length} seleccionados` : 'Todas'}</span>
+                <button 
+                    onClick={() => setShowFeaturesDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Características</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.features.length ? `${filters.features.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Antigüedad */}
-                <div>
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-white mb-2">Antigüedad</h2>
-                    <button 
-                        onClick={() => setShowAntiquityDrawer(true)}
-                        className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
-                    >
-                        <span className="text-gray-700 dark:text-gray-200">{filters.antiquity !== null ? (
+                <button 
+                    onClick={() => setShowAntiquityDrawer(true)}
+                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-700 dark:text-gray-200">Antigüedad</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.antiquity !== null ? (
                             filters.antiquity === 0 ? 'A estrenar' :
                             filters.antiquity === 100 ? 'Más de 30 años' :
                             `Hasta ${filters.antiquity} años`
@@ -261,11 +247,11 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                         <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
-                    </button>
-                </div>
+                    </div>
+                </button>
 
                 {/* Otros filtros */}
-                <div>
+                <div className="mt-8">
                     <h3 className="text-sm font-bold text-gray-400 tracking-wider uppercase mb-4">
                         OTROS FILTROS
                     </h3>
@@ -309,16 +295,6 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                         </div>
                     </div>
                 </div>
-            </div>
-
-            {/* Botón de aplicar */}
-            <div className="p-4 bg-gray-950 border-t border-gray-800">
-                <button 
-                    onClick={() => onApplyFilters(filters)}
-                    className="w-full p-4 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl shadow-md transition-colors"
-                >
-                    Aplicar
-                </button>
             </div>
 
             {/* Drawers */}

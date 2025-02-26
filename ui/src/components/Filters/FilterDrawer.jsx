@@ -1,4 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 
 const FilterDrawer = ({ 
     isOpen, 
@@ -9,16 +10,44 @@ const FilterDrawer = ({
     onSelect,
     customContent
 }) => {
+    const contentRef = useRef(null);
+    const [contentHeight, setContentHeight] = useState(0);
+    const [windowHeight, setWindowHeight] = useState(0);
+
+    // Calcular la altura del contenido y de la ventana cuando el drawer se abre
+    useEffect(() => {
+        if (isOpen && contentRef.current) {
+            const updateHeights = () => {
+                const contentHeight = contentRef.current.scrollHeight;
+                const windowHeight = window.innerHeight;
+                setContentHeight(contentHeight);
+                setWindowHeight(windowHeight);
+            };
+            
+            updateHeights();
+            // Actualizar en caso de cambio de tamaño
+            window.addEventListener('resize', updateHeights);
+            return () => window.removeEventListener('resize', updateHeights);
+        }
+    }, [isOpen, options, customContent]);
+
+    // Calcular la altura máxima del drawer (50% de la pantalla o el contenido si es menor)
+    const drawerHeight = Math.min(contentHeight + 80, windowHeight * 0.5);
+    
     return (
         <AnimatePresence>
             {isOpen && (
                 <motion.div 
-                    className="absolute inset-0 bg-white dark:bg-gray-800 rounded-t-2xl"
+                    className="absolute inset-x-0 bottom-0 bg-white dark:bg-gray-800 rounded-t-2xl"
                     initial={{ y: "100%" }}
                     animate={{ y: 0 }}
                     exit={{ y: "100%" }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                    style={{ zIndex: 10 }}
+                    style={{ 
+                        zIndex: 10,
+                        height: drawerHeight > 0 ? `${drawerHeight}px` : 'auto',
+                        maxHeight: '50vh'
+                    }}
                 >
                     <div className="h-full flex flex-col">
                         {/* Indicador de arrastre */}
@@ -40,7 +69,7 @@ const FilterDrawer = ({
                         </div>
 
                         {/* Contenido */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div className="flex-1 overflow-y-auto" ref={contentRef}>
                             {customContent ? customContent : (
                                 <div className="p-4 space-y-2">
                                     {options?.map(option => (

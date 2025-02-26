@@ -16,20 +16,39 @@ function App() {
   const [showNavBar, setShowNavBar] = useState(true);
 
   useEffect(() => {
-    // Actualizamos la clase en el html y guardamos la preferencia
+    // Actualizamos solo la clase en el html sin modificar localStorage
     if (darkMode) {
       document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
 
+  // Efecto para manejar el tema automático basado en la hora
+  useEffect(() => {
+    const themeMode = localStorage.getItem('themeMode');
+    
+    if (themeMode === 'auto') {
+      const updateThemeByTime = () => {
+        const hour = new Date().getHours();
+        const isDarkHours = hour < 7 || hour > 19; // Oscuro entre 7pm y 7am
+        setDarkMode(isDarkHours);
+      };
+      
+      // Actualizar el tema inmediatamente
+      updateThemeByTime();
+      
+      // Configurar un intervalo para verificar cada hora
+      const interval = setInterval(updateThemeByTime, 60 * 60 * 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, []);
+
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 dark:bg-black">
-        <div className="relative max-w-md mx-auto h-screen">
+      <div className="min-h-screen bg-gray-950 dark:bg-gray-950">
+        <div className="relative max-w-md mx-auto h-screen overflow-hidden">
           <Routes>
             <Route path="/" element={<Home setShowNavBar={setShowNavBar} />} />
             <Route path="/likes" element={<Likes setShowNavBar={setShowNavBar} />} />
@@ -37,14 +56,6 @@ function App() {
           </Routes>
           <BottomNavBar show={showNavBar} />
         </div>
-
-        {/* Botón para cambiar el tema */}
-        <button 
-          onClick={() => setDarkMode(!darkMode)}
-          className="fixed top-4 right-4 p-2 rounded-full bg-white dark:bg-gray-800 shadow-md"
-        >
-          {darkMode ? '🌞' : '🌙'}
-        </button>
       </div>
     </Router>
   );
