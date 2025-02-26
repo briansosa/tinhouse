@@ -38,7 +38,7 @@ const FilterDrawer = ({
         <AnimatePresence>
             {isOpen && (
                 <motion.div 
-                    className="absolute inset-x-0 bottom-0 bg-white dark:bg-gray-800 rounded-t-2xl"
+                    className="absolute inset-x-0 bottom-0 bg-gray-900 dark:bg-gray-900 rounded-t-2xl"
                     initial={{ y: "100%" }}
                     animate={{ y: 0 }}
                     exit={{ y: "100%" }}
@@ -51,20 +51,20 @@ const FilterDrawer = ({
                 >
                     <div className="h-full flex flex-col">
                         {/* Indicador de arrastre */}
-                        <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-3 mb-2" />
+                        <div className="w-12 h-1 bg-gray-600 dark:bg-gray-600 rounded-full mx-auto mt-3 mb-2" />
 
                         {/* Header */}
-                        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <div className="p-4 border-b border-gray-700 dark:border-gray-700">
                             <div className="flex items-center gap-3">
                                 <button 
                                     onClick={onClose}
-                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                                    className="p-2 hover:bg-gray-800 dark:hover:bg-gray-800 rounded-full"
                                 >
-                                    <svg className="w-6 h-6 text-gray-500 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-6 h-6 text-gray-300 dark:text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                                     </svg>
                                 </button>
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-white">{title}</h3>
+                                <h3 className="text-xl font-bold text-white dark:text-white">{title}</h3>
                             </div>
                         </div>
 
@@ -78,7 +78,7 @@ const FilterDrawer = ({
                                             className={`w-full p-4 rounded-xl text-base font-medium transition-all ${
                                                 selectedValue === option.id
                                                     ? 'bg-blue-500 text-white'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
+                                                    : 'bg-gray-800 dark:bg-gray-800 text-gray-300 dark:text-gray-300'
                                             }`}
                                             onClick={() => onSelect(option.id)}
                                         >

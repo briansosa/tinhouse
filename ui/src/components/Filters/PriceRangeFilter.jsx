@@ -44,7 +44,7 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
                     className={`px-4 py-2 rounded-full text-sm font-medium ${
                         currency === 'ARS' 
                             ? 'bg-blue-500 text-white' 
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200'
+                            : 'bg-gray-800 dark:bg-gray-800 text-gray-300 dark:text-gray-300'
                     }`}
                 >
                     {currency === 'ARS' ? 'ARS' : 'USD'}
@@ -54,9 +54,9 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
             {/* Inputs de rango */}
             <div className="flex items-center space-x-4">
                 <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Mínimo</label>
+                    <label className="block text-sm font-medium text-gray-300 dark:text-gray-300 mb-1">Mínimo</label>
                     <div className="relative">
-                        <span className="absolute inset-y-0 left-3 flex items-center text-gray-500 dark:text-gray-400">
+                        <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 dark:text-gray-400">
                             {currency === 'ARS' ? '$' : 'US$'}
                         </span>
                         <input
@@ -64,14 +64,14 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
                             value={range.min || ''}
                             onChange={(e) => handleSliderChange('min')(e)}
                             placeholder="Mínimo"
-                            className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full pl-10 pr-3 py-2 border border-gray-600 dark:border-gray-600 rounded-lg bg-gray-800 dark:bg-gray-800 text-white dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                 </div>
                 <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Máximo</label>
+                    <label className="block text-sm font-medium text-gray-300 dark:text-gray-300 mb-1">Máximo</label>
                     <div className="relative">
-                        <span className="absolute inset-y-0 left-3 flex items-center text-gray-500 dark:text-gray-400">
+                        <span className="absolute inset-y-0 left-3 flex items-center text-gray-400 dark:text-gray-400">
                             {currency === 'ARS' ? '$' : 'US$'}
                         </span>
                         <input
@@ -79,7 +79,7 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
                             value={range.max || ''}
                             onChange={(e) => handleSliderChange('max')(e)}
                             placeholder="Máximo"
-                            className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full pl-10 pr-3 py-2 border border-gray-600 dark:border-gray-600 rounded-lg bg-gray-800 dark:bg-gray-800 text-white dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                     </div>
                 </div>

@@ -139,11 +139,11 @@ export default function Settings({ setShowNavBar }) {
     };
 
     return (
-        <div className="h-full flex flex-col bg-white dark:bg-gray-800">
+        <div className="h-full flex flex-col bg-gray-950 dark:bg-gray-950">
             {/* Header */}
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="p-4 border-b border-gray-800 dark:border-gray-800">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-bold text-gray-800 dark:text-white">Configuración</h1>
+                    <h1 className="text-xl font-bold text-white dark:text-white">Configuración</h1>
                     <button 
                         onClick={saveFilters}
                         className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg"
@@ -158,12 +158,12 @@ export default function Settings({ setShowNavBar }) {
                 {/* Tipo de propiedad */}
                 <button 
                     onClick={() => setShowPropertyTypeDrawer(true)}
-                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                 >
-                    <span className="text-gray-700 dark:text-gray-200">Tipo de propiedad</span>
+                    <span className="text-gray-300 dark:text-gray-300">Tipo de propiedad</span>
                     <div className="flex items-center">
-                        <span className="text-gray-500 dark:text-gray-400 mr-2">{selectedPropertyType?.label || 'Todas'}</span>
-                        <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{selectedPropertyType?.label || 'Todas'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
@@ -172,12 +172,12 @@ export default function Settings({ setShowNavBar }) {
                 {/* Rango de precio */}
                 <button 
                     onClick={() => setShowPriceRangeDrawer(true)}
-                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                 >
-                    <span className="text-gray-700 dark:text-gray-200">Precio</span>
+                    <span className="text-gray-300 dark:text-gray-300">Precio</span>
                     <div className="flex items-center">
-                        <span className="text-gray-500 dark:text-gray-400 mr-2">{getPriceRangeLabel()}</span>
-                        <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{getPriceRangeLabel()}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
@@ -186,12 +186,12 @@ export default function Settings({ setShowNavBar }) {
                 {/* Ubicación */}
                 <button 
                     onClick={() => setShowLocationDrawer(true)}
-                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                 >
-                    <span className="text-gray-700 dark:text-gray-200">Ubicación</span>
+                    <span className="text-gray-300 dark:text-gray-300">Ubicación</span>
                     <div className="flex items-center">
-                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.locations.length ? `${filters.locations.length} seleccionados` : 'Todas'}</span>
-                        <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.locations.length ? `${filters.locations.length} seleccionados` : 'Todas'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
@@ -200,12 +200,12 @@ export default function Settings({ setShowNavBar }) {
                 {/* Tamaño */}
                 <button 
                     onClick={() => setShowSizeRangeDrawer(true)}
-                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                 >
-                    <span className="text-gray-700 dark:text-gray-200">Tamaño</span>
+                    <span className="text-gray-300 dark:text-gray-300">Tamaño</span>
                     <div className="flex items-center">
-                        <span className="text-gray-500 dark:text-gray-400 mr-2">{getSizeRangeLabel()}</span>
-                        <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{getSizeRangeLabel()}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
@@ -214,12 +214,12 @@ export default function Settings({ setShowNavBar }) {
                 {/* Ambientes */}
                 <button 
                     onClick={() => setShowRoomsDrawer(true)}
-                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                 >
-                    <span className="text-gray-700 dark:text-gray-200">Ambientes</span>
+                    <span className="text-gray-300 dark:text-gray-300">Ambientes</span>
                     <div className="flex items-center">
-                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.rooms ? `${filters.rooms}+` : 'Todos'}</span>
-                        <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.rooms ? `${filters.rooms}+` : 'Todos'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
@@ -228,12 +228,12 @@ export default function Settings({ setShowNavBar }) {
                 {/* Baños */}
                 <button 
                     onClick={() => setShowBathroomsDrawer(true)}
-                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                 >
-                    <span className="text-gray-700 dark:text-gray-200">Baños</span>
+                    <span className="text-gray-300 dark:text-gray-300">Baños</span>
                     <div className="flex items-center">
-                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.bathrooms ? `${filters.bathrooms}+` : 'Todos'}</span>
-                        <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.bathrooms ? `${filters.bathrooms}+` : 'Todos'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
@@ -242,12 +242,12 @@ export default function Settings({ setShowNavBar }) {
                 {/* Características */}
                 <button 
                     onClick={() => setShowFeaturesDrawer(true)}
-                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                 >
-                    <span className="text-gray-700 dark:text-gray-200">Características</span>
+                    <span className="text-gray-300 dark:text-gray-300">Características</span>
                     <div className="flex items-center">
-                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.features.length ? `${filters.features.length} seleccionados` : 'Todas'}</span>
-                        <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.features.length ? `${filters.features.length} seleccionados` : 'Todas'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
@@ -256,16 +256,16 @@ export default function Settings({ setShowNavBar }) {
                 {/* Antigüedad */}
                 <button 
                     onClick={() => setShowAntiquityDrawer(true)}
-                    className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                 >
-                    <span className="text-gray-700 dark:text-gray-200">Antigüedad</span>
+                    <span className="text-gray-300 dark:text-gray-300">Antigüedad</span>
                     <div className="flex items-center">
-                        <span className="text-gray-500 dark:text-gray-400 mr-2">{filters.antiquity !== null ? (
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.antiquity !== null ? (
                             filters.antiquity === 0 ? 'A estrenar' :
                             filters.antiquity === 100 ? 'Más de 30 años' :
                             `Hasta ${filters.antiquity} años`
                         ) : 'Cualquiera'}</span>
-                        <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
@@ -281,12 +281,12 @@ export default function Settings({ setShowNavBar }) {
                         {/* Tema */}
                         <button 
                             onClick={() => setShowThemeDrawer(true)}
-                            className="w-full p-4 bg-gray-100 dark:bg-gray-700 rounded-xl flex justify-between items-center"
+                            className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                         >
-                            <span className="text-gray-700 dark:text-gray-200">Tema</span>
+                            <span className="text-gray-300 dark:text-gray-300">Tema</span>
                             <div className="flex items-center">
-                                <span className="text-gray-500 dark:text-gray-400 mr-2">{selectedTheme?.label || 'Automático'}</span>
-                                <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <span className="text-gray-400 dark:text-gray-400 mr-2">{selectedTheme?.label || 'Automático'}</span>
+                                <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                             </div>
