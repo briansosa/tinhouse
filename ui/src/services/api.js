@@ -25,6 +25,18 @@ export const getLikedProperties = (filters = null) => {
 
 export const rateProperty = (id, rating) => api.put(`/properties/${id}/rate`, { rating });
 
+// Función para marcar/desmarcar una propiedad como favorita
+export const togglePropertyFavorite = (id, isFavorite) => api.put(`/properties/${id}/favorite`, { is_favorite: isFavorite });
+
+// Función para obtener propiedades favoritas
+export const getFavoriteProperties = (filters = null) => {
+  if (filters) {
+    console.log("filters", filters);
+    return api.get('/properties/favorites', { params: convertFilters(filters) });
+  }
+  return api.get('/properties/favorites');
+};
+
 // Métodos para manejar notas de propiedades
 export const getPropertyNotes = (propertyId) => api.get(`/properties/${propertyId}/notes`);
 
@@ -54,6 +66,10 @@ const convertFilters = (filters) => {
 
   if (filters.showOnlyWithNotes) {
     backendFilters.show_only_with_notes = filters.showOnlyWithNotes;
+  }
+
+  if (filters.showOnlyFavorites) {
+    backendFilters.show_only_favorites = filters.showOnlyFavorites;
   }
 
   // Convertir rango de precios

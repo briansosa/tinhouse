@@ -12,6 +12,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [filters, setFilters] = useState(initialFilters || {
         propertyType: 'all',
         showOnlyWithNotes: false,
+        showOnlyFavorites: false,
         priceRange: {
             min: null,
             max: null,
@@ -80,6 +81,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         setFilters({
             propertyType: 'all',
             showOnlyWithNotes: false,
+            showOnlyFavorites: false,
             priceRange: {
                 min: null,
                 max: null,
@@ -102,6 +104,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         return (
             filters.propertyType !== 'all' ||
             filters.showOnlyWithNotes ||
+            filters.showOnlyFavorites ||
             filters.priceRange.min !== null ||
             filters.priceRange.max !== null ||
             filters.locations.length > 0 ||
@@ -300,23 +303,44 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                         <h3 className="text-sm font-bold text-gray-400 tracking-wider uppercase mb-4">
                             OTROS FILTROS
                         </h3>
-                        <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800">
-                            <span className="text-md text-gray-300">Solo propiedades con notas</span>
-                            <button 
-                                onClick={() => setFilters(prev => ({ 
-                                    ...prev, 
-                                    showOnlyWithNotes: !prev.showOnlyWithNotes 
-                                }))}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
-                                    filters.showOnlyWithNotes ? 'bg-blue-500' : 'bg-gray-600'
-                                }`}
-                            >
-                                <span 
-                                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
-                                        filters.showOnlyWithNotes ? 'translate-x-6' : 'translate-x-1'
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800">
+                                <span className="text-md text-gray-300">Solo propiedades con notas</span>
+                                <button 
+                                    onClick={() => setFilters(prev => ({ 
+                                        ...prev, 
+                                        showOnlyWithNotes: !prev.showOnlyWithNotes 
+                                    }))}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
+                                        filters.showOnlyWithNotes ? 'bg-blue-500' : 'bg-gray-600'
                                     }`}
-                                />
-                            </button>
+                                >
+                                    <span 
+                                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+                                            filters.showOnlyWithNotes ? 'translate-x-6' : 'translate-x-1'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
+                            
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-gray-800">
+                                <span className="text-md text-gray-300">Solo propiedades favoritas</span>
+                                <button 
+                                    onClick={() => setFilters(prev => ({ 
+                                        ...prev, 
+                                        showOnlyFavorites: !prev.showOnlyFavorites 
+                                    }))}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
+                                        filters.showOnlyFavorites ? 'bg-blue-500' : 'bg-gray-600'
+                                    }`}
+                                >
+                                    <span 
+                                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition-transform duration-300 ${
+                                            filters.showOnlyFavorites ? 'translate-x-6' : 'translate-x-1'
+                                        }`}
+                                    />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

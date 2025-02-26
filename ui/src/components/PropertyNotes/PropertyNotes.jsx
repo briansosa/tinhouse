@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { getPropertyNotes, addPropertyNote, deletePropertyNote } from '../../services/api';
+import { getPropertyNotes, addPropertyNote, deletePropertyNote, togglePropertyFavorite } from '../../services/api';
 
 export default function PropertyNotes({ property, onClose, onImageClick }) {
     const [notes, setNotes] = useState([]);
     const [newNote, setNewNote] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isFavorite, setIsFavorite] = useState(property.is_favorite);
+    const [isHeartHovered, setIsHeartHovered] = useState(false);
 
     // Cargar notas desde la API
     useEffect(() => {
@@ -53,6 +55,15 @@ export default function PropertyNotes({ property, onClose, onImageClick }) {
         }
     };
 
+    const handleToggleFavorite = async () => {
+        try {
+            await togglePropertyFavorite(property.id, !isFavorite);
+            setIsFavorite(!isFavorite);
+        } catch (err) {
+            console.error('Error al cambiar estado de favorito:', err);
+        }
+    };
+
     return (
         <div className="h-full flex flex-col bg-white dark:bg-gray-950">
             {/* Header */}
@@ -75,6 +86,27 @@ export default function PropertyNotes({ property, onClose, onImageClick }) {
                 <div className="flex-1">
                     <h2 className="text-md font-semibold dark:text-white">{property.title}</h2>
                     <p className="text-sm text-gray-500">{property.location}</p>
+                </div>
+                
+                {/* Botón de favorito */}
+                <div 
+                    className="p-2 rounded-full cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    onClick={handleToggleFavorite}
+                    onMouseEnter={() => setIsHeartHovered(true)}
+                    onMouseLeave={() => setIsHeartHovered(false)}
+                >
+                    <svg 
+                        className={`w-6 h-6 transition-all duration-200 ${
+                            isFavorite 
+                                ? 'text-red-500 fill-current' 
+                                : isHeartHovered 
+                                    ? 'text-red-400 fill-red-300' 
+                                    : 'fill-none stroke-red-300 stroke-1'
+                        }`} 
+                        viewBox="0 0 24 24"
+                    >
+                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                    </svg>
                 </div>
             </div>
 

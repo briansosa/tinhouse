@@ -37,6 +37,7 @@ type PropertyResponse struct {
 	Details      Details   `json:"details"`
 	Agency       Agency    `json:"agency"`
 	HasNotes     bool      `json:"has_notes"`
+	IsFavorite   bool      `json:"is_favorite"`
 }
 
 type Details struct {
@@ -93,6 +94,12 @@ func (h *Handler) GetUnratedProperties(w http.ResponseWriter, r *http.Request) {
 			resp.HasNotes = hasNotes
 		}
 
+		// Verificar si la propiedad es favorita
+		isFavorite, err := h.db.IsPropertyFavorite(p.ID)
+		if err == nil {
+			resp.IsFavorite = isFavorite
+		}
+
 		response = append(response, resp)
 	}
 
@@ -126,6 +133,12 @@ func (h *Handler) GetLikedProperties(w http.ResponseWriter, r *http.Request) {
 		hasNotes, err := h.db.PropertyHasNotes(p.ID)
 		if err == nil {
 			resp.HasNotes = hasNotes
+		}
+
+		// Verificar si la propiedad es favorita
+		isFavorite, err := h.db.IsPropertyFavorite(p.ID)
+		if err == nil {
+			resp.IsFavorite = isFavorite
 		}
 
 		response = append(response, resp)
@@ -243,6 +256,75 @@ func (h *Handler) DeletePropertyNote(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"success": true,
+		"note_id": noteID,
+	})
+}
+
+// TogglePropertyFavorite marca o desmarca una propiedad como favorita
+func (h *Handler) TogglePropertyFavorite(w http.ResponseWriter, r *http.Request) {
+	propertyID, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	if err != nil {
+		http.Error(w, "invalid property id", http.StatusBadRequest)
+		return
+	}
+
+	var request struct {
+		IsFavorite bool `json:"is_favorite"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.db.TogglePropertyFavorite(propertyID, request.IsFavorite); err != nil {
+		http.Error(w, fmt.Sprintf("error toggling favorite: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":     true,
+		"property_id": propertyID,
+		"is_favorite": request.IsFavorite,
+	})
+}
+
+// GetFavoriteProperties retorna las propiedades marcadas como favoritas
+func (h *Handler) GetFavoriteProperties(w http.ResponseWriter, r *http.Request) {
+	// Parsear filtros de la solicitud
+	filter, err := parsePropertyFilter(r)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error parsing filters: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	properties, err := h.db.GetFavoriteProperties(filter)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("error getting favorite properties: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	response := make([]PropertyResponse, 0, len(properties))
+	for _, p := range properties {
+		resp := h.toPropertyResponse(&p)
+
+		// Verificar si la propiedad tiene notas
+		hasNotes, err := h.db.PropertyHasNotes(p.ID)
+		if err == nil {
+			resp.HasNotes = hasNotes
+		}
+
+		// Las propiedades favoritas siempre tienen IsFavorite = true
+		resp.IsFavorite = true
+
+		response = append(response, resp)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"properties": response,
+		"total":      len(response),
 	})
 }
 
@@ -302,7 +384,8 @@ func (h *Handler) toPropertyResponse(p *db.Propiedad) PropertyResponse {
 			FrontSize: p.Frente,
 			BackSize:  p.Fondo,
 		},
-		Agency: agency,
+		Agency:     agency,
+		IsFavorite: p.IsFavorite,
 	}
 }
 

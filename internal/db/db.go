@@ -726,23 +726,35 @@ func (db *DB) RateProperty(propertyID int64, rating string) error {
 		return fmt.Errorf("la propiedad %d no existe", propertyID)
 	}
 
-	// Verificar estructura de la tabla
-	var tableInfo string
-	err = db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='property_ratings'`).Scan(&tableInfo)
+	// Verificar si ya existe un rating para mantener el estado de favorito
+	var isFavorite bool
+	var hasRating bool
+	err = db.QueryRow(`
+		SELECT EXISTS(SELECT 1 FROM property_ratings WHERE property_id = ?),
+		       IFNULL((SELECT is_favorite FROM property_ratings WHERE property_id = ?), 0)
+	`, propertyID, propertyID).Scan(&hasRating, &isFavorite)
 	if err != nil {
-		return fmt.Errorf("error obteniendo estructura de tabla: %v", err)
+		return fmt.Errorf("error verificando rating existente: %v", err)
 	}
-	fmt.Printf("Estructura de tabla property_ratings: %s\n", tableInfo)
 
-	// Intentar insertar
+	// Si cambiamos de like a dislike, quitamos el favorito
+	if rating == "dislike" {
+		isFavorite = false
+	}
+
+	// Intentar insertar o actualizar
 	query := `
-		INSERT INTO property_ratings (property_id, rating)
-		VALUES (?, ?)
+		INSERT INTO property_ratings (property_id, rating, is_favorite)
+		VALUES (?, ?, ?)
 		ON CONFLICT(property_id) DO UPDATE SET
 			rating = excluded.rating,
+			is_favorite = CASE 
+				WHEN excluded.rating = 'dislike' THEN 0
+				ELSE excluded.is_favorite
+			END,
 			created_at = CURRENT_TIMESTAMP`
 
-	result, err := db.Exec(query, propertyID, rating)
+	result, err := db.Exec(query, propertyID, rating, isFavorite)
 	if err != nil {
 		return fmt.Errorf("error calificando propiedad %d: %v", propertyID, err)
 	}
@@ -832,4 +844,91 @@ func (db *DB) PropertyHasNotes(propertyID int64) (bool, error) {
 	}
 
 	return count > 0, nil
+}
+
+// TogglePropertyFavorite marca o desmarca una propiedad como favorita
+func (db *DB) TogglePropertyFavorite(propertyID int64, isFavorite bool) error {
+	// Verificar si la propiedad existe
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM propiedades WHERE id = ?)", propertyID).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("error verificando propiedad %d: %v", propertyID, err)
+	}
+	if !exists {
+		return fmt.Errorf("la propiedad %d no existe", propertyID)
+	}
+
+	// Verificar si la propiedad ya tiene un rating
+	var hasRating bool
+	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM property_ratings WHERE property_id = ?)", propertyID).Scan(&hasRating)
+	if err != nil {
+		return fmt.Errorf("error verificando rating de propiedad %d: %v", propertyID, err)
+	}
+
+	if hasRating {
+		// Actualizar el valor de is_favorite
+		query := `
+			UPDATE property_ratings
+			SET is_favorite = ?
+			WHERE property_id = ?`
+
+		_, err = db.Exec(query, isFavorite, propertyID)
+		if err != nil {
+			return fmt.Errorf("error actualizando favorito para propiedad %d: %v", propertyID, err)
+		}
+	} else {
+		// Si no tiene rating, no podemos marcarla como favorita (debe tener like primero)
+		return fmt.Errorf("la propiedad %d no tiene calificación, debe tener 'like' antes de marcarla como favorita", propertyID)
+	}
+
+	return nil
+}
+
+// GetFavoriteProperties retorna las propiedades marcadas como favoritas
+func (db *DB) GetFavoriteProperties(filter *PropertyFilter) ([]Propiedad, error) {
+	baseQuery := `
+		SELECT 
+			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
+			p.url, p.imagen_url, p.imagenes, p.fecha_scraping, p.created_at, p.updated_at,
+			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
+			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
+			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
+			p.situacion, p.expensas, p.descripcion, p.status
+		FROM propiedades p
+		INNER JOIN property_ratings r ON r.property_id = p.id
+		WHERE r.rating = 'like' AND r.is_favorite = 1`
+
+	whereConditions, args := buildFilterConditions(filter)
+
+	// Agregar condiciones WHERE si existen
+	if len(whereConditions) > 0 {
+		baseQuery += " AND " + strings.Join(whereConditions, " AND ")
+	}
+
+	baseQuery += " ORDER BY r.created_at DESC"
+
+	rows, err := db.Query(baseQuery, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error consultando propiedades favoritas: %v", err)
+	}
+	defer rows.Close()
+
+	return scanPropiedades(rows)
+}
+
+// IsPropertyFavorite verifica si una propiedad está marcada como favorita
+func (db *DB) IsPropertyFavorite(propertyID int64) (bool, error) {
+	query := `SELECT is_favorite FROM property_ratings WHERE property_id = ?`
+
+	var isFavorite bool
+	err := db.QueryRow(query, propertyID).Scan(&isFavorite)
+	if err == sql.ErrNoRows {
+		// Si no hay registro, no es favorita
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("error verificando si la propiedad %d es favorita: %v", propertyID, err)
+	}
+
+	return isFavorite, nil
 }

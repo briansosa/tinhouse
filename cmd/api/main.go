@@ -48,7 +48,9 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/properties/unrated", h.GetUnratedProperties)
 		r.Get("/properties/liked", h.GetLikedProperties)
+		r.Get("/properties/favorites", h.GetFavoriteProperties)
 		r.Put("/properties/{id}/rate", h.RateProperty)
+		r.Put("/properties/{id}/favorite", h.TogglePropertyFavorite)
 
 		// Rutas para notas de propiedades
 		r.Get("/properties/{id}/notes", h.GetPropertyNotes)

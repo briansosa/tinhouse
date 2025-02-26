@@ -132,6 +132,15 @@ const FilterChips = ({ filters, onRemove }) => {
             });
         }
 
+        // Solo favoritos
+        if (filters.showOnlyFavorites) {
+            chips.push({
+                id: 'showOnlyFavorites',
+                label: 'Solo favoritos',
+                onRemove: () => onRemove('showOnlyFavorites', false)
+            });
+        }
+
         return chips;
     };
 

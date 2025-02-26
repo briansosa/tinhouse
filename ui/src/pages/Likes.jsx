@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getLikedProperties } from '../services/api';
+import { getLikedProperties, togglePropertyFavorite } from '../services/api';
 import LikedPropertyCard from '../components/LikedPropertyCard/LikedPropertyCard';
 import PropertyNotes from '../components/PropertyNotes/PropertyNotes';
 import { useDrag } from '@use-gesture/react';
@@ -23,6 +23,7 @@ export default function Likes({ setShowNavBar }) {
     const [activeFilters, setActiveFilters] = useState({
         propertyType: null,
         showOnlyWithNotes: false,
+        showOnlyFavorites: false,
         priceRange: {
             min: null,
             max: null,
@@ -136,12 +137,16 @@ export default function Likes({ setShowNavBar }) {
         }
     };
 
-    const sortedProperties = sortProperties(likedProperties);
+    // Filtrar propiedades favoritas si está activado el filtro
+    const filteredProperties = activeFilters.showOnlyFavorites 
+        ? sortProperties(likedProperties).filter(property => property.is_favorite)
+        : sortProperties(likedProperties);
 
     const hasActiveFilters = () => {
         return (
             activeFilters.propertyType !== 'all' ||
             activeFilters.showOnlyWithNotes ||
+            activeFilters.showOnlyFavorites ||
             activeFilters.priceRange.min !== null ||
             activeFilters.priceRange.max !== null ||
             activeFilters.locations.length > 0 ||
@@ -152,6 +157,23 @@ export default function Likes({ setShowNavBar }) {
             activeFilters.bathrooms !== null ||
             activeFilters.antiquity !== null
         );
+    };
+
+    // Manejador para marcar/desmarcar favoritos
+    const handleToggleFavorite = async (propertyId, isFavorite) => {
+        try {
+            await togglePropertyFavorite(propertyId, isFavorite);
+            // Actualizar el estado local para reflejar el cambio
+            setLikedProperties(prevProperties => 
+                prevProperties.map(property => 
+                    property.id === propertyId 
+                        ? { ...property, is_favorite: isFavorite } 
+                        : property
+                )
+            );
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+        }
     };
 
     return (
@@ -212,6 +234,55 @@ export default function Likes({ setShowNavBar }) {
                         )}
                     </div>
                     
+                    {/* Filtros rápidos */}
+                    <div className="px-4 mb-4 flex gap-2">
+                        <button
+                            className={`px-3 py-1.5 rounded-full text-sm ${
+                                activeFilters.showOnlyWithNotes
+                                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                            }`}
+                            onClick={() => {
+                                const updatedFilters = {
+                                    ...activeFilters,
+                                    showOnlyWithNotes: !activeFilters.showOnlyWithNotes
+                                };
+                                setActiveFilters(updatedFilters);
+                                fetchLikedProperties(updatedFilters);
+                            }}
+                        >
+                            <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                                </svg>
+                                Con notas
+                            </span>
+                        </button>
+                        
+                        <button
+                            className={`px-3 py-1.5 rounded-full text-sm ${
+                                activeFilters.showOnlyFavorites
+                                    ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                            }`}
+                            onClick={() => {
+                                const updatedFilters = {
+                                    ...activeFilters,
+                                    showOnlyFavorites: !activeFilters.showOnlyFavorites
+                                };
+                                setActiveFilters(updatedFilters);
+                                fetchLikedProperties(updatedFilters);
+                            }}
+                        >
+                            <span className="flex items-center gap-1">
+                                <svg className="w-4 h-4" fill={activeFilters.showOnlyFavorites ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                                Favoritos
+                            </span>
+                        </button>
+                    </div>
+                    
                     {/* Chips de filtros activos */}
                     {hasActiveFilters() && (
                         <FilterChips 
@@ -221,7 +292,7 @@ export default function Likes({ setShowNavBar }) {
                     )}
                     
                     <div id="carousel-container" 
-                        className={`h-[calc(100%-5rem)] overflow-hidden transition-all duration-300 ${
+                        className={`h-[calc(100%-8rem)] overflow-hidden transition-all duration-300 ${
                             showFilters ? 'hidden' : ''
                         }`}
                     >
@@ -229,14 +300,14 @@ export default function Likes({ setShowNavBar }) {
                             <div className="flex justify-center items-center h-full">
                                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                             </div>
-                        ) : sortedProperties.length > 0 ? (
+                        ) : filteredProperties.length > 0 ? (
                             <motion.div 
                                 id="carousel-content"
                                 {...bind()}
                                 style={{ y }}
                                 className="flex flex-col gap-4 px-4 touch-none cursor-grab active:cursor-grabbing"
                             >
-                                {sortedProperties.map(property => (
+                                {filteredProperties.map(property => (
                                     <div key={property.id}>
                                         <LikedPropertyCard
                                             property={property}
@@ -244,6 +315,7 @@ export default function Likes({ setShowNavBar }) {
                                                 setSelectedProperty(property);
                                                 setShowNavBar(false);
                                             }}
+                                            onToggleFavorite={handleToggleFavorite}
                                         />
                                     </div>
                                 ))}

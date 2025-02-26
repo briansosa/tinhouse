@@ -61,6 +61,9 @@ type Propiedad struct {
 	Expensas           *float64 `db:"expensas"`
 	Descripcion        *string  `db:"descripcion"`
 	Status             string   `db:"status"`
+
+	// Campo virtual para indicar si es favorita
+	IsFavorite bool `db:"-"`
 }
 
 // BusquedaPropiedad representa la relación entre búsquedas y propiedades
@@ -75,6 +78,7 @@ type PropertyRating struct {
 	ID         int64     `db:"id"`
 	PropertyID int64     `db:"property_id"`
 	Rating     string    `db:"rating"` // 'like' o 'dislike'
+	IsFavorite bool      `db:"is_favorite"`
 	CreatedAt  time.Time `db:"created_at"`
 }
 
@@ -101,4 +105,5 @@ type PropertyFilter struct {
 	Bathrooms         *int     `json:"bathrooms"`
 	Antiquity         *int     `json:"antiquity"`
 	ShowOnlyWithNotes bool     `json:"show_only_with_notes"`
+	ShowOnlyFavorites bool     `json:"show_only_favorites"`
 }

@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS property_ratings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     property_id INTEGER NOT NULL,
     rating TEXT NOT NULL CHECK(rating IN ('like', 'dislike')),
+    is_favorite BOOLEAN DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (property_id) REFERENCES propiedades(id),
     UNIQUE(property_id)
