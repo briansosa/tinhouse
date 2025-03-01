@@ -3,11 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>FindHouse</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Función para manejar la altura real del viewport en dispositivos móviles
+      function setVhVariable() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+      }
+      
+      // Establecer el valor inicial
+      setVhVariable();
+      
+      // Actualizar en cambios de tamaño o orientación
+      window.addEventListener('resize', setVhVariable);
+      window.addEventListener('orientationchange', setVhVariable);
+
+      // Asegurar que la aplicación ocupe todo el ancho disponible
+      document.documentElement.style.width = '100%';
+      document.body.style.width = '100%';
+      document.getElementById('root').style.width = '100%';
+    </script>
   </body>
 </html>

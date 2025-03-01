@@ -45,16 +45,38 @@ function App() {
     }
   }, []);
 
+  // Efecto para calcular la altura real del viewport en dispositivos móviles
+  useEffect(() => {
+    const setVhVariable = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+
+    // Establecer el valor inicial
+    setVhVariable();
+
+    // Actualizar en cambios de tamaño o orientación
+    window.addEventListener('resize', setVhVariable);
+    window.addEventListener('orientationchange', setVhVariable);
+
+    return () => {
+      window.removeEventListener('resize', setVhVariable);
+      window.removeEventListener('orientationchange', setVhVariable);
+    };
+  }, []);
+
   return (
     <Router>
-      <div className="min-h-screen bg-gray-950 dark:bg-gray-950">
-        <div className="relative max-w-md mx-auto h-screen overflow-hidden">
-          <Routes>
-            <Route path="/" element={<Home setShowNavBar={setShowNavBar} />} />
-            <Route path="/likes" element={<Likes setShowNavBar={setShowNavBar} />} />
-            <Route path="/settings" element={<Settings setShowNavBar={setShowNavBar} />} />
-          </Routes>
-          <BottomNavBar show={showNavBar} />
+      <div className={`app-container bg-gray-950 dark:bg-gray-950 ${!showNavBar ? 'no-navbar' : ''}`}>
+        <div className="w-full h-full flex flex-col">
+          <div className={`main-content ${!showNavBar ? 'pb-0' : ''}`}>
+            <Routes>
+              <Route path="/" element={<Home setShowNavBar={setShowNavBar} />} />
+              <Route path="/likes" element={<Likes setShowNavBar={setShowNavBar} />} />
+              <Route path="/settings" element={<Settings setShowNavBar={setShowNavBar} />} />
+            </Routes>
+          </div>
+          {showNavBar && <BottomNavBar show={showNavBar} />}
         </div>
       </div>
     </Router>

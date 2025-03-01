@@ -1,3 +1,85 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Estilos globales para manejar alturas en dispositivos móviles */
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: fixed;
+  padding: 0;
+  margin: 0;
+}
+
+/* Soporte para safe-area en iOS */
+@supports (padding: max(0px)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Clase para botones de acción con posicionamiento sticky */
+.action-buttons {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40; /* Menor que la barra de navegación para que no se superpongan */
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  margin-top: 0;
+  
+}
+
+/* Ajustes para el contenedor principal */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Ajustes para el contenido principal */
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  height: calc(100% - 4rem);
+  width: 100%;
+  transition: height 0.3s ease;
+}
+
+/* Ajustes cuando la barra de navegación está oculta */
+.no-navbar .main-content {
+  height: 100%;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.main-content.pb-0 {
+  padding-bottom: 0;
+}
+
+/* Ajustes para asegurar que el contenido ocupe todo el ancho disponible */
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+/* Ajustes para dispositivos móviles específicos */
+@media screen and (max-width: 768px) {
+  .property-card-container {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .property-card-container > div:first-child {
+    flex: 1;
+  }
+}

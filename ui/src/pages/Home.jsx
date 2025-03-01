@@ -73,11 +73,11 @@ export default function Home({ setShowNavBar }) {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return <div className="flex justify-center items-center h-full w-full">Loading...</div>;
   }
 
   return (
-    <div className="h-full pb-16 bg-gray-950 dark:bg-gray-950">
+    <div className="h-full flex flex-col w-full">
       {properties.length > 0 ? (
         <PropertyCard 
           property={properties[0]}
@@ -87,7 +87,7 @@ export default function Home({ setShowNavBar }) {
           setShowNavBar={setShowNavBar}
         />
       ) : (
-        <div className="text-center text-gray-600">No more properties to show</div>
+        <div className="flex-1 flex items-center justify-center text-center text-gray-600 w-full">No more properties to show</div>
       )}
     </div>
   );

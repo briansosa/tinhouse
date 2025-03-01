@@ -36,31 +36,35 @@ export default function ImageCarousel({ property }) {
     const showControls = images.length > 1;
 
     return (
-        <div className="relative w-full h-full overflow-hidden">
+        <div className="relative w-full h-full overflow-hidden bg-gray-900">
             <AnimatePresence mode="wait">
-                <motion.img
+                <motion.div
                     key={currentIndex}
-                    src={images[currentIndex]}
-                    alt={property.title || 'Property image'}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0 }}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    draggable="false"
-                    onError={(e) => {
-                        e.target.src = 'https://via.placeholder.com/400x300';
-                    }}
-                />
+                    className="absolute inset-0 w-full h-full flex items-center justify-center"
+                >
+                    <img
+                        src={images[currentIndex]}
+                        alt={property.title || 'Property image'}
+                        className="w-full h-full object-cover"
+                        draggable="false"
+                        onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/400x300';
+                        }}
+                    />
+                </motion.div>
             </AnimatePresence>
             
             {showControls && (
                 <>
                     {/* Botones de navegación */}
-                    <div className="absolute inset-0 flex items-center justify-between px-4">
+                    <div className="absolute inset-0 flex items-center justify-between px-4 pointer-events-none">
                         <button
                             onClick={prevImage}
-                            className="w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center transition-colors backdrop-blur-sm"
+                            className="w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center transition-colors backdrop-blur-sm pointer-events-auto"
                             disabled={currentIndex === 0}
                         >
                             <svg className="w-5 h-5" fill="none" stroke="white" viewBox="0 0 24 24">
@@ -70,7 +74,7 @@ export default function ImageCarousel({ property }) {
 
                         <button
                             onClick={nextImage}
-                            className="w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center transition-colors backdrop-blur-sm"
+                            className="w-8 h-8 rounded-full bg-black/30 hover:bg-black/50 flex items-center justify-center transition-colors backdrop-blur-sm pointer-events-auto"
                             disabled={currentIndex === images.length - 1}
                         >
                             <svg className="w-5 h-5" fill="none" stroke="white" viewBox="0 0 24 24">

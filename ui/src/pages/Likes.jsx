@@ -151,7 +151,7 @@ export default function Likes({ setShowNavBar }) {
     return (
         <div className="h-full bg-gray-950 dark:bg-gray-950">
             {!selectedProperty ? (
-                <div className="h-full relative pb-16">
+                <div className="h-full relative">
                     <div className="p-4">
                         <div className="flex items-center justify-between mb-4">
                             <h1 className="text-xl font-semibold dark:text-white">
