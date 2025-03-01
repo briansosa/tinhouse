@@ -30,7 +30,7 @@ func main() {
 
 	// Basic CORS
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"}, // URL de desarrollo de Vite
+		AllowedOrigins:   []string{"http://localhost:5173", "http://*:5173"}, // URL de desarrollo de Vite
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		ExposedHeaders:   []string{"Link"},
