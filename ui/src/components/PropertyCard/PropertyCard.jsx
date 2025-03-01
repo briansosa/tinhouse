@@ -56,6 +56,7 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
     } finally {
       setIsRating(false);
       setShowNavBar(true);
+      setShowDetails(false);
       setIsDragging(false);
     }
   };
