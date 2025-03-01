@@ -289,9 +289,15 @@ export default function Likes({ setShowNavBar }) {
                                             property={property}
                                             onClick={() => {
                                                 setSelectedProperty(property);
+                                                setShowDetails(true);
                                                 setShowNavBar(false);
                                             }}
                                             onToggleFavorite={handleToggleFavorite}
+                                            onNotesClick={(property) => {
+                                                setSelectedProperty(property);
+                                                setShowDetails(false);
+                                                setShowNavBar(false);
+                                            }}
                                         />
                                     </div>
                                 ))}
@@ -325,9 +331,13 @@ export default function Likes({ setShowNavBar }) {
                     property={selectedProperty}
                     onClose={() => {
                         setShowDetails(false);
-                        setShowNavBar(false);
+                        setSelectedProperty(null);
+                        setShowNavBar(true);
                     }}
                     onDislike={() => handleDislike(selectedProperty.id)}
+                    onNotesClick={() => {
+                        setShowDetails(false);
+                    }}
                 />
             ) : (
                 <PropertyNotes 
@@ -338,7 +348,6 @@ export default function Likes({ setShowNavBar }) {
                     }}
                     onImageClick={() => {
                         setShowDetails(true);
-                        setShowNavBar(false);
                     }}
                     onDislike={() => handleDislike(selectedProperty.id)}
                 />

@@ -2,7 +2,7 @@ import ImageCarousel from '../ImageCarousel/ImageCarousel';
 import { useState } from 'react';
 import { dislikeProperty, togglePropertyFavorite } from '../../services/api';
 
-export default function PropertyDetails({ property, onClose, onDislike }) {
+export default function PropertyDetails({ property, onClose, onDislike, onNotesClick }) {
     const [showMenu, setShowMenu] = useState(false);
     const [isFavorite, setIsFavorite] = useState(property.is_favorite);
     const [isHeartHovered, setIsHeartHovered] = useState(false);
@@ -58,6 +58,23 @@ export default function PropertyDetails({ property, onClose, onDislike }) {
                             <h2 className="text-2xl font-bold dark:text-white">{property.title}</h2>
                             {onClose && (
                                 <div className="flex items-center">
+                                    {/* Botón de notas */}
+                                    <div 
+                                        className="p-2 rounded-full cursor-pointer transition-all duration-200"
+                                        onClick={onNotesClick}
+                                    >
+                                        <svg 
+                                            className={`w-6 h-6 transition-all duration-200 ${
+                                                property.has_notes 
+                                                    ? 'text-blue-500 fill-current' 
+                                                    : 'fill-none stroke-gray-300 stroke-1'
+                                            }`} 
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                                        </svg>
+                                    </div>
+                                    
                                     {/* Botón de favorito */}
                                     <div 
                                         className="p-2 rounded-full cursor-pointer transition-all duration-200"

@@ -1,16 +1,23 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
-export default function LikedPropertyCard({ property, onClick, onToggleFavorite }) {
+export default function LikedPropertyCard({ property, onClick, onToggleFavorite, onNotesClick }) {
     // Ya no necesitamos verificar el localStorage, la API nos indica si la propiedad tiene notas
     const hasNotes = property.has_notes;
     const isFavorite = property.is_favorite;
     const [isHovered, setIsHovered] = useState(false);
+    const [isNotesHovered, setIsNotesHovered] = useState(false);
 
     // Función para manejar el clic en el botón de favorito
     const handleFavoriteClick = (e) => {
         e.stopPropagation(); // Evitar que el clic se propague al contenedor
         onToggleFavorite(property.id, !isFavorite);
+    };
+
+    // Función para manejar el clic en el botón de notas
+    const handleNotesClick = (e) => {
+        e.stopPropagation(); // Evitar que el clic se propague al contenedor
+        onNotesClick(property);
     };
 
     return (
@@ -41,14 +48,26 @@ export default function LikedPropertyCard({ property, onClick, onToggleFavorite 
 
             {/* Iconos de acciones (notas y favoritos) */}
             <div className="absolute bottom-1.5 right-1.5 flex items-center gap-2">
-                {/* Indicador de notas */}
-                {hasNotes && (
-                    <div className="bg-blue-500 text-white p-1 rounded-full pointer-events-none">
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-                        </svg>
-                    </div>
-                )}
+                {/* Botón de notas */}
+                <div 
+                    className="p-1 rounded-full cursor-pointer z-10 transition-all duration-200"
+                    onClick={handleNotesClick}
+                    onMouseEnter={() => setIsNotesHovered(true)}
+                    onMouseLeave={() => setIsNotesHovered(false)}
+                >
+                    <svg 
+                        className={`w-5 h-5 transition-all duration-200 ${
+                            hasNotes 
+                                ? 'text-blue-500 fill-current' 
+                                : isNotesHovered 
+                                    ? 'text-blue-400 fill-blue-300' 
+                                    : 'fill-none stroke-gray-300 stroke-1'
+                        }`} 
+                        viewBox="0 0 24 24"
+                    >
+                        <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
+                    </svg>
+                </div>
                 
                 {/* Botón de favorito */}
                 <div 
