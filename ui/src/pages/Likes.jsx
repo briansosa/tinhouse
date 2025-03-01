@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { getLikedProperties, togglePropertyFavorite, dislikeProperty } from '../services/api';
 import LikedPropertyCard from '../components/LikedPropertyCard/LikedPropertyCard';
 import PropertyNotes from '../components/PropertyNotes/PropertyNotes';
-import { useDrag } from '@use-gesture/react';
-import { motion, useMotionValue, animate } from 'framer-motion';
 import PropertyDetails from '../components/PropertyDetails/PropertyDetails';
 import Filters from '../components/Filters/Filters';
 import FilterChips from '../components/Filters/FilterChips';
@@ -13,9 +11,6 @@ export default function Likes({ setShowNavBar }) {
     const [selectedProperty, setSelectedProperty] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [containerHeight, setContainerHeight] = useState(0);
-    const [contentHeight, setContentHeight] = useState(0);
-    const y = useMotionValue(0);
     const [showDetails, setShowDetails] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [showSortMenu, setShowSortMenu] = useState(false);
@@ -56,46 +51,6 @@ export default function Likes({ setShowNavBar }) {
             setIsLoading(false);
         }
     };
-
-    useEffect(() => {
-        const container = document.getElementById('carousel-container');
-        const content = document.getElementById('carousel-content');
-        if (container && content) {
-            setContainerHeight(container.offsetHeight);
-            setContentHeight(content.scrollHeight);
-            content.style.touchAction = 'none';
-        }
-    }, [likedProperties]);
-
-    const bind = useDrag(({ down, movement: [mx, my] }) => {
-        const currentY = y.get();
-        const targetY = currentY + my;
-        
-        // Límites del scroll
-        const minY = -(contentHeight - containerHeight);
-        const boundedY = Math.max(minY, Math.min(0, targetY));
-
-        // Aplicar la posición
-        y.set(boundedY);
-
-        // Si soltamos, aplicar una animación simple para "asentar" el scroll
-        if (!down) {
-            animate(y, boundedY, {
-                type: "spring",
-                damping: 20,
-                stiffness: 200,
-                mass: 0.5
-            });
-        }
-    }, {
-        axis: 'y',
-        filterTaps: true,
-        bounds: {
-            top: 0,
-            bottom: -(contentHeight - containerHeight)
-        },
-        rubberband: 0.5
-    });
 
     const handleApplyFilters = (filters) => {
         setActiveFilters(filters);
@@ -310,9 +265,9 @@ export default function Likes({ setShowNavBar }) {
                         }} 
                     />
                     
-                    {/* Contenido principal */}
-                    <div id="carousel-container" 
-                        className={`h-[calc(100%-9rem)] overflow-hidden transition-all duration-300 ${
+                    {/* Contenido principal - Reemplazamos el carousel por un div con scroll normal */}
+                    <div 
+                        className={`h-[calc(100%-9rem)] overflow-y-auto transition-all duration-300 ${
                             showFilters ? 'hidden' : ''
                         }`}
                     >
@@ -325,11 +280,8 @@ export default function Likes({ setShowNavBar }) {
                                 {error}
                             </div>
                         ) : filteredProperties.length > 0 ? (
-                            <motion.div 
-                                id="carousel-content"
-                                style={{ y }}
-                                className="flex flex-col gap-4 px-4 touch-none cursor-grab active:cursor-grabbing"
-                                {...bind()}
+                            <div 
+                                className="flex flex-col gap-4 px-4"
                             >
                                 {filteredProperties.map(property => (
                                     <div key={property.id}>
@@ -343,7 +295,7 @@ export default function Likes({ setShowNavBar }) {
                                         />
                                     </div>
                                 ))}
-                            </motion.div>
+                            </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 px-4 text-center">
                                 <svg className="w-16 h-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
