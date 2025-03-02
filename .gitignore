@@ -1,5 +1,5 @@
 # Base de datos
-*.db
+cmd/api/*.db
 
 # Logs
 logs
