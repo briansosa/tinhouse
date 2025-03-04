@@ -68,15 +68,16 @@ func (db *DB) CreateBusqueda(b *Busqueda) error {
 func (db *DB) CreatePropiedad(p *Propiedad) error {
 	query := `
         INSERT INTO propiedades (
-            inmobiliaria_id, codigo, titulo, precio, direccion, url, imagen_url, fecha_scraping,
+            inmobiliaria_id, codigo, titulo, precio, moneda, direccion, url, imagen_url, fecha_scraping,
             tipo_propiedad, ubicacion, dormitorios, banios, antiguedad, 
             superficie_cubierta, superficie_total, frente, fondo, ambientes,
             expensas, descripcion, status
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(codigo) DO UPDATE SET
             titulo = excluded.titulo,
             precio = excluded.precio,
+            moneda = excluded.moneda,
             direccion = excluded.direccion,
             url = excluded.url,
             imagen_url = excluded.imagen_url,
@@ -98,7 +99,7 @@ func (db *DB) CreatePropiedad(p *Propiedad) error {
         RETURNING id, created_at, updated_at`
 
 	return db.QueryRow(query,
-		p.InmobiliariaID, p.Codigo, p.Titulo, p.Precio, p.Direccion, p.URL, p.ImagenURL, p.FechaScraping,
+		p.InmobiliariaID, p.Codigo, p.Titulo, p.Precio, p.Moneda, p.Direccion, p.URL, p.ImagenURL, p.FechaScraping,
 		p.TipoPropiedad, p.Ubicacion, p.Dormitorios, p.Banios, p.Antiguedad,
 		p.SuperficieCubierta, p.SuperficieTotal, p.Frente, p.Fondo, p.Ambientes,
 		p.Expensas, p.Descripcion, p.Status,

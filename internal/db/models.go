@@ -35,6 +35,7 @@ type Propiedad struct {
 	Codigo         string    `db:"codigo"`
 	Titulo         string    `db:"titulo"`
 	Precio         string    `db:"precio"`
+	Moneda         string    `db:"moneda"`
 	Direccion      string    `db:"direccion"`
 	URL            string    `db:"url"`
 	ImagenURL      string    `db:"imagen_url"`

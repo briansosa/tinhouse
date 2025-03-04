@@ -173,10 +173,10 @@ func SearchProperties(database *db.DB, testMode bool) error {
 				Codigo:         prop.Code,
 				Titulo:         prop.Title,
 				Precio:         prop.PriceText,
+				Moneda:         prop.Currency,
 				Direccion:      prop.Address,
 				URL:            prop.URL,
 				ImagenURL:      prop.ImageURL,
-				FechaScraping:  time.Now(),
 			}
 
 			// Ya no vinculamos con búsqueda

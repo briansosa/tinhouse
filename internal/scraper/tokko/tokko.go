@@ -66,11 +66,45 @@ func (s *Scraper) SearchProperties(ctx context.Context) ([]models.Property, erro
 					const addressElement = prop.querySelector('.prop-desc-dir');
 					const imageElement = prop.querySelector('.dest-img');
 					
+					// Procesar el precio para separar moneda y valor
+					let priceText = priceElement?.textContent?.trim() || '';
+					
+					// Limpiar el precio de cualquier código o texto adicional
+					// Solo queremos mantener los dígitos, puntos y comas
+					let currency = '';
+					let priceValue = '';
+					
+					// Extraer moneda (USD o $)
+					if (priceText.includes('USD')) {
+						currency = 'USD';
+						// Eliminar 'USD' y luego limpiar cualquier texto que no sea parte del precio
+						priceValue = priceText.replace('USD', '').trim();
+						// Usar una expresión regular para extraer solo el formato de precio (números, puntos, comas)
+						const priceMatch = priceValue.match(/[\d.,]+/);
+						priceValue = priceMatch ? priceMatch[0] : priceValue;
+					} else if (priceText.includes('$')) {
+						currency = 'ARS';
+						// Eliminar '$' y luego limpiar cualquier texto que no sea parte del precio
+						priceValue = priceText.replace('$', '').trim();
+						// Usar una expresión regular para extraer solo el formato de precio (números, puntos, comas)
+						const priceMatch = priceValue.match(/[\d.,]+/);
+						priceValue = priceMatch ? priceMatch[0] : priceValue;
+					} else {
+						currency = 'Desconocida';
+						// Intentar extraer solo el formato de precio (números, puntos, comas)
+						const priceMatch = priceText.match(/[\d.,]+/);
+						priceValue = priceMatch ? priceMatch[0] : priceText;
+					}
+					
+					// Extraer el código correctamente, asegurándose de que no se mezcle con el precio
+					let code = codeElement?.textContent?.trim() || '';
+					
 					return {
 						title: titleElement?.textContent?.trim(),
-						priceText: priceElement?.textContent?.trim() || '',
+						priceText: priceValue,
+						currency: currency,
 						address: addressElement?.textContent?.trim(),
-						code: codeElement?.textContent?.trim(),
+						code: code,
 						url: prop.querySelector('a')?.href,
 						imageUrl: imageElement?.src || ''
 					};
@@ -84,71 +118,6 @@ func (s *Scraper) SearchProperties(ctx context.Context) ([]models.Property, erro
 	}
 
 	return properties, nil
-}
-
-func operationToTokko(op string) string {
-	switch op {
-	case "venta":
-		return "1"
-	case "alquiler":
-		return "2"
-	default:
-		return "1"
-	}
-}
-
-func propertyTypeToTokko(t string) string {
-	switch t {
-	case "casa":
-		return "3"
-	case "departamento":
-		return "2"
-	case "terreno":
-		return "1"
-	case "local":
-		return "6"
-	case "oficina":
-		return "7"
-	case "galpon":
-		return "8"
-	default:
-		return "3"
-	}
-}
-
-// Nuevas funciones para el formato de URL
-func propertyTypeToTokkoURL(t string) string {
-	switch t {
-	case "casa":
-		return "Casa"
-	case "departamento":
-		return "Departamento"
-	default:
-		return "Casa"
-	}
-}
-
-func operationToTokkoURL(op string) string {
-	switch op {
-	case "venta":
-		return "Venta"
-	case "alquiler":
-		return "Alquiler"
-	default:
-		return "Venta"
-	}
-}
-
-// Mapeo de ubicaciones
-func locationToTokko(location string) string {
-	locations := map[string]string{
-		"Lanús": "26540",
-		// Agregar más mappings según necesitemos
-	}
-	if id, ok := locations[location]; ok {
-		return id
-	}
-	return "26540" // Default a Lanús
 }
 
 // GetPropertyDetails obtiene los detalles de una propiedad específica
