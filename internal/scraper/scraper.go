@@ -2,9 +2,7 @@ package scraper
 
 import (
 	"context"
-	"encoding/csv"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -20,8 +18,96 @@ type Inmobiliaria struct {
 	Rating    string
 }
 
-// Nombre del archivo CSV
-const fileName = "inmobiliarias_lanus.csv"
+type SistemaInmobiliario struct {
+	Nombre      string
+	Marcadores  []string
+	Ocurrencias int
+}
+
+var sistemasConocidos = []SistemaInmobiliario{
+	{
+		Nombre: "Tokko Broker",
+		Marcadores: []string{
+			"tokkobroker",
+			"tkb.com.ar",
+		},
+	},
+	{
+		Nombre: "Properati",
+		Marcadores: []string{
+			"properati",
+			"property-gallery",
+		},
+	},
+	{
+		Nombre: "Zonaprop",
+		Marcadores: []string{
+			"zonaprop.com.ar",
+		},
+	},
+	{
+		Nombre: "WordPress",
+		Marcadores: []string{
+			"wp-content",
+			"wp-includes",
+		},
+	},
+	{
+		Nombre: "Buscador Prop",
+		Marcadores: []string{
+			"buscadorprop",
+			"grupotodo.com.ar",
+		},
+	},
+	{
+		Nombre: "Argencasas",
+		Marcadores: []string{
+			"argencasas.com",
+			"argencasas.com.ar",
+			"inmobiliario.com.ar",
+		},
+	},
+	{
+		Nombre: "Ubiquo",
+		Marcadores: []string{
+			"ubiquo",
+			"ubiquo.com.ar",
+		},
+	},
+	{
+		Nombre: "Adinco",
+		Marcadores: []string{
+			"adinco",
+			"crm.adinco.net",
+		},
+	},
+	{
+		Nombre: "Me Mudo Ya",
+		Marcadores: []string{
+			"memudoya",
+			"memudoya.com",
+			"mapaprop",
+			"mapaprop.com",
+		},
+	},
+	{
+		Nombre: "Amaira",
+		Marcadores: []string{
+			"amaira",
+			"amaira.com.ar",
+			"xintel",
+			"xintel.com.ar",
+		},
+	},
+	{
+		Nombre: "Desarrollo propio",
+		Marcadores: []string{
+			"sysmika",
+			"fenix",
+			"nibiru",
+		},
+	},
+}
 
 // SearchInmobiliarias busca inmobiliarias en Google Maps y opcionalmente las guarda en CSV
 func SearchInmobiliarias(ctx context.Context, zona string) ([]Inmobiliaria, error) {
@@ -169,80 +255,54 @@ func SearchInmobiliarias(ctx context.Context, zona string) ([]Inmobiliaria, erro
 	return results, nil
 }
 
-func saveToCSV(results []Inmobiliaria, filename string) error {
-	file, err := os.Create(filename)
+// AnalyzeSystem analiza una URL y detecta qué sistema usa
+func AnalyzeSystem(url string) (string, error) {
+	if url == "" {
+		return "No identificado", nil
+	}
+
+	// Limpiar URL
+	url = strings.TrimSpace(url)
+	if !strings.HasPrefix(url, "http") {
+		url = "https://" + url
+	}
+
+	// Configurar Chrome
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", true),
+		chromedp.Flag("disable-gpu", true),
+		chromedp.Flag("no-sandbox", true),
+	)
+
+	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer cancel()
+
+	ctx, cancel := chromedp.NewContext(allocCtx)
+	defer cancel()
+
+	// Agregar timeout
+	ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	var htmlContent string
+	err := chromedp.Run(ctx,
+		chromedp.Navigate(url),
+		chromedp.Sleep(2*time.Second),
+		chromedp.OuterHTML("html", &htmlContent),
+	)
+
 	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	writer := csv.NewWriter(file)
-	defer writer.Flush()
-
-	// Escribir headers
-	headers := []string{"Nombre", "Sitio Web", "Dirección", "Teléfono", "Rating"}
-	if err := writer.Write(headers); err != nil {
-		return err
+		return "", fmt.Errorf("error al acceder a %s: %v", url, err)
 	}
 
-	// Escribir resultados
-	for _, r := range results {
-		row := []string{
-			r.Nombre,
-			r.SitioWeb,
-			r.Direccion,
-			r.Telefono,
-			r.Rating,
-		}
-		if err := writer.Write(row); err != nil {
-			return err
+	// Buscar sistema usando los marcadores conocidos
+	for _, sistema := range sistemasConocidos {
+		for _, marcador := range sistema.Marcadores {
+			if strings.Contains(strings.ToLower(htmlContent), strings.ToLower(marcador)) {
+				return sistema.Nombre, nil
+			}
 		}
 	}
 
-	return nil
-}
-
-// limpiarTexto elimina caracteres no deseados y espacios extra
-func limpiarTexto(texto string) string {
-	// Eliminar saltos de línea y espacios múltiples
-	texto = strings.ReplaceAll(texto, "\n", " ")
-	texto = strings.Join(strings.Fields(texto), " ")
-	return strings.TrimSpace(texto)
-}
-
-// Agregar estas funciones de limpieza
-func limpiarDireccion(direccion string) string {
-	direccion = strings.TrimSpace(direccion)
-
-	// Eliminar el punto y espacios al principio
-	direccion = strings.TrimPrefix(direccion, "·")
-	direccion = strings.TrimPrefix(direccion, " ")
-
-	// Si es un teléfono o texto de horario, ignorarlo
-	if strings.HasPrefix(direccion, "011") ||
-		strings.Contains(direccion, "Abre") ||
-		strings.Contains(direccion, "Cierra") ||
-		strings.Contains(direccion, "⋅") {
-		return ""
-	}
-
-	return direccion
-}
-
-func limpiarTelefono(telefono string) string {
-	// Asegurar formato consistente de teléfono
-	telefono = strings.TrimSpace(telefono)
-	if telefono != "" && !strings.HasPrefix(telefono, "011") {
-		telefono = "011 " + telefono
-	}
-	return telefono
-}
-
-func limpiarSitioWeb(url string) string {
-	// Eliminar URLs de Google Ads y parámetros de tracking
-	if strings.Contains(url, "googleadservices.com") ||
-		strings.Contains(url, "?utm_source=") {
-		return ""
-	}
-	return strings.TrimSpace(url)
+	return "No identificado", nil
 }

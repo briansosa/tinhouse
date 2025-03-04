@@ -8,104 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/chromedp/chromedp"
 	"github.com/findhouse/internal/db"
 	"github.com/findhouse/internal/models"
 	"github.com/findhouse/internal/scraper"
 	"github.com/findhouse/internal/scraper/tokko"
 	"golang.org/x/exp/rand"
 )
-
-type SistemaInmobiliario struct {
-	Nombre      string
-	Marcadores  []string
-	Ocurrencias int
-}
-
-var sistemasConocidos = []SistemaInmobiliario{
-	{
-		Nombre: "Tokko Broker",
-		Marcadores: []string{
-			"tokkobroker",
-			"tkb.com.ar",
-		},
-	},
-	{
-		Nombre: "Properati",
-		Marcadores: []string{
-			"properati",
-			"property-gallery",
-		},
-	},
-	{
-		Nombre: "Zonaprop",
-		Marcadores: []string{
-			"zonaprop.com.ar",
-		},
-	},
-	{
-		Nombre: "WordPress",
-		Marcadores: []string{
-			"wp-content",
-			"wp-includes",
-		},
-	},
-	{
-		Nombre: "Buscador Prop",
-		Marcadores: []string{
-			"buscadorprop",
-			"grupotodo.com.ar",
-		},
-	},
-	{
-		Nombre: "Argencasas",
-		Marcadores: []string{
-			"argencasas.com",
-			"argencasas.com.ar",
-			"inmobiliario.com.ar",
-		},
-	},
-	{
-		Nombre: "Ubiquo",
-		Marcadores: []string{
-			"ubiquo",
-			"ubiquo.com.ar",
-		},
-	},
-	{
-		Nombre: "Adinco",
-		Marcadores: []string{
-			"adinco",
-			"crm.adinco.net",
-		},
-	},
-	{
-		Nombre: "Me Mudo Ya",
-		Marcadores: []string{
-			"memudoya",
-			"memudoya.com",
-			"mapaprop",
-			"mapaprop.com",
-		},
-	},
-	{
-		Nombre: "Amaira",
-		Marcadores: []string{
-			"amaira",
-			"amaira.com.ar",
-			"xintel",
-			"xintel.com.ar",
-		},
-	},
-	{
-		Nombre: "Desarrollo propio",
-		Marcadores: []string{
-			"sysmika",
-			"fenix",
-			"nibiru",
-		},
-	},
-}
 
 // SearchAndSaveInmobiliarias busca inmobiliarias en Google Maps y guarda solo las nuevas en la DB
 func SearchAndSaveInmobiliarias(database *db.DB, zone string) error {
@@ -188,8 +96,8 @@ func SearchAndSaveInmobiliarias(database *db.DB, zone string) error {
 	return nil
 }
 
-// AnalyzeSitesDB analiza las inmobiliarias y guarda/actualiza en la base de datos
-func AnalyzeSitesDB(database *db.DB) error {
+// AnalyzeSystem analiza las inmobiliarias y guarda/actualiza en la base de datos
+func AnalyzeSystem(database *db.DB) error {
 	// Obtener inmobiliarias sin sistema identificado
 	inmobiliarias, err := database.GetInmobiliariasSinSistema()
 	if err != nil {
@@ -199,14 +107,14 @@ func AnalyzeSitesDB(database *db.DB) error {
 	fmt.Printf("Analizando %d inmobiliarias...\n", len(inmobiliarias))
 
 	for _, inmo := range inmobiliarias {
-		sistema, err := DetectarSistema(inmo.URL)
+		system, err := scraper.AnalyzeSystem(inmo.URL)
 		if err != nil {
 			log.Printf("Error detectando sistema para %s: %v\n", inmo.Nombre, err)
 			continue
 		}
 
 		// Actualizar inmobiliaria con el sistema detectado
-		inmo.Sistema = sistema
+		inmo.Sistema = system
 		inmo.UpdatedAt = time.Now()
 
 		if err := database.UpdateInmobiliariaSistema(&inmo); err != nil {
@@ -215,17 +123,10 @@ func AnalyzeSitesDB(database *db.DB) error {
 
 		}
 
-		fmt.Printf("✓ %s: %s\n", inmo.Nombre, sistema)
+		fmt.Printf("✓ %s: %s\n", inmo.Nombre, system)
 	}
 
 	return nil
-}
-
-// DetectarSistema es la misma función que ya tienes pero exportada
-func DetectarSistema(url string) (string, error) {
-	// Implementar la lógica de detección que ya tienes en analyzer.go
-	system, err := AnalyzeSystem(url)
-	return system, err
 }
 
 func SearchProperties(database *db.DB, filter models.PropertyFilter, testMode bool) error {
@@ -423,56 +324,4 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 		actualizadas, fallidas, noDisponibles)
 
 	return nil
-}
-
-// AnalyzeSystem analiza una URL y detecta qué sistema usa
-func AnalyzeSystem(url string) (string, error) {
-	if url == "" {
-		return "No identificado", nil
-	}
-
-	// Limpiar URL
-	url = strings.TrimSpace(url)
-	if !strings.HasPrefix(url, "http") {
-		url = "https://" + url
-	}
-
-	// Configurar Chrome
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", true),
-		chromedp.Flag("disable-gpu", true),
-		chromedp.Flag("no-sandbox", true),
-	)
-
-	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
-	defer cancel()
-
-	ctx, cancel := chromedp.NewContext(allocCtx)
-	defer cancel()
-
-	// Agregar timeout
-	ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
-
-	var htmlContent string
-	err := chromedp.Run(ctx,
-		chromedp.Navigate(url),
-		chromedp.Sleep(2*time.Second),
-		chromedp.OuterHTML("html", &htmlContent),
-	)
-
-	if err != nil {
-		return "", fmt.Errorf("error al acceder a %s: %v", url, err)
-	}
-
-	// Buscar sistema usando los marcadores conocidos
-	for _, sistema := range sistemasConocidos {
-		for _, marcador := range sistema.Marcadores {
-			if strings.Contains(strings.ToLower(htmlContent), strings.ToLower(marcador)) {
-				return sistema.Nombre, nil
-			}
-		}
-	}
-
-	return "No identificado", nil
 }

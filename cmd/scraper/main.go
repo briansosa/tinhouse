@@ -35,12 +35,20 @@ func main() {
 func runProcess(database *db.DB, flags *configuration.Flags) error {
 	switch flags.Mode {
 	case configuration.ModeFindInmobiliarias:
+		if flags.Zone == "" {
+			return fmt.Errorf("zona no especificada")
+		}
+
 		return findInmobiliarias(database, flags.Zone)
 
 	case configuration.ModeAnalyzeSystems:
 		return analyzeSystems(database)
 
 	case configuration.ModeNewInmobiliarias:
+		if flags.Zone == "" {
+			return fmt.Errorf("zona no especificada")
+		}
+
 		if err := findInmobiliarias(database, flags.Zone); err != nil {
 			return fmt.Errorf("error en búsqueda de inmobiliarias: %w", err)
 		}
@@ -82,7 +90,7 @@ func findInmobiliarias(database *db.DB, zone string) error {
 
 func analyzeSystems(database *db.DB) error {
 	log.Println("Iniciando análisis de sistemas...")
-	return analyzer.AnalyzeSitesDB(database)
+	return analyzer.AnalyzeSystem(database)
 }
 
 func searchProperties(database *db.DB, filter models.PropertyFilter, testMode bool) error {
