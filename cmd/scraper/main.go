@@ -25,23 +25,23 @@ func main() {
 	}
 	defer database.Close()
 
-	if err := runProcess(database, string(flags.Mode), flags.TestMode); err != nil {
+	if err := runProcess(database, flags); err != nil {
 		log.Fatal(err)
 	}
 
 	log.Printf("Proceso '%s' completado exitosamente\n", flags.Mode)
 }
 
-func runProcess(database *db.DB, mode string, testMode bool) error {
-	switch mode {
-	case string(configuration.ModeFindInmobiliarias):
-		return findInmobiliarias(database)
+func runProcess(database *db.DB, flags *configuration.Flags) error {
+	switch flags.Mode {
+	case configuration.ModeFindInmobiliarias:
+		return findInmobiliarias(database, flags.Zone)
 
-	case string(configuration.ModeAnalyzeSystems):
+	case configuration.ModeAnalyzeSystems:
 		return analyzeSystems(database)
 
-	case string(configuration.ModeNewInmobiliarias):
-		if err := findInmobiliarias(database); err != nil {
+	case configuration.ModeNewInmobiliarias:
+		if err := findInmobiliarias(database, flags.Zone); err != nil {
 			return fmt.Errorf("error en búsqueda de inmobiliarias: %w", err)
 		}
 
@@ -49,7 +49,7 @@ func runProcess(database *db.DB, mode string, testMode bool) error {
 			return fmt.Errorf("error en análisis de sistemas: %w", err)
 		}
 
-	case string(configuration.ModeSearchProperties):
+	case configuration.ModeSearchProperties:
 		// Por ahora usamos filtros fijos
 		filter := models.PropertyFilter{
 			Operation:   "venta",
@@ -60,24 +60,24 @@ func runProcess(database *db.DB, mode string, testMode bool) error {
 			MaxPriceUSD: 90000,
 		}
 
-		if err := searchProperties(database, filter, testMode); err != nil {
+		if err := searchProperties(database, filter, flags.TestMode); err != nil {
 			return fmt.Errorf("error en búsqueda de propiedades: %w", err)
 		}
 
-	case string(configuration.ModeUpdateProperties):
-		if err := updateProperties(database, testMode); err != nil {
+	case configuration.ModeUpdateProperties:
+		if err := updateProperties(database, flags.TestMode); err != nil {
 			return fmt.Errorf("error en actualización de propiedades: %w", err)
 		}
 	default:
-		return fmt.Errorf("modo no válido: %s", mode)
+		return fmt.Errorf("modo no válido: %s", flags.Mode)
 	}
 
 	return nil
 }
 
-func findInmobiliarias(database *db.DB) error {
+func findInmobiliarias(database *db.DB, zone string) error {
 	log.Println("Iniciando búsqueda de inmobiliarias...")
-	return analyzer.SearchAndSaveInmobiliarias(database)
+	return analyzer.SearchAndSaveInmobiliarias(database, zone)
 }
 
 func analyzeSystems(database *db.DB) error {

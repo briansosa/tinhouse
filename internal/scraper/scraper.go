@@ -45,7 +45,7 @@ func SearchInmobiliarias(ctx context.Context, zona string) ([]Inmobiliaria, erro
 	ctx, cancel = chromedp.NewContext(allocCtx)
 	defer cancel()
 
-	url := "https://www.google.com/maps/search/inmobiliarias+en+Lanus"
+	url := fmt.Sprintf("https://www.google.com/maps/search/inmobiliarias+en+%s", strings.ReplaceAll(zona, " ", "+"))
 	fmt.Printf("📍 Navegando a: %s\n", url)
 
 	var results []Inmobiliaria

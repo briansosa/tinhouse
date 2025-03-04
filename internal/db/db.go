@@ -189,18 +189,16 @@ func (db *DB) ExistsInmobiliaria(nombre, direccion string) (bool, error) {
 							REPLACE(
 								REPLACE(
 									REPLACE(
-										REPLACE(
-											REPLACE(nombre, ' ', ''),
-											'.', ''
-										),
-										',', ''
+										REPLACE(nombre, ' ', ''),
+										'.', ''
 									),
-									'-', ''
+									',', ''
 								),
-								'&', ''
+								'-', ''
 							),
-							'''', ''
-						)
+							'&', ''
+						),
+						'''', ''
 					)
 				) as nombre_norm,
 				LOWER(
@@ -209,18 +207,16 @@ func (db *DB) ExistsInmobiliaria(nombre, direccion string) (bool, error) {
 							REPLACE(
 								REPLACE(
 									REPLACE(
-										REPLACE(
-											REPLACE(direccion, ' ', ''),
-											'.', ''
-										),
-										',', ''
+										REPLACE(direccion, ' ', ''),
+										'.', ''
 									),
-									'-', ''
+									',', ''
 								),
-								'&', ''
+								'-', ''
 							),
-							'''', ''
-						)
+							'&', ''
+						),
+						'''', ''
 					)
 				) as direccion_norm
 			FROM inmobiliarias
