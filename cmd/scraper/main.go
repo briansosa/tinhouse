@@ -8,7 +8,6 @@ import (
 	"github.com/findhouse/cmd/configuration"
 	"github.com/findhouse/internal/analyzer"
 	"github.com/findhouse/internal/db"
-	"github.com/findhouse/internal/models"
 )
 
 func main() {
@@ -58,17 +57,8 @@ func runProcess(database *db.DB, flags *configuration.Flags) error {
 		}
 
 	case configuration.ModeSearchProperties:
-		// Por ahora usamos filtros fijos
-		filter := models.PropertyFilter{
-			Operation:   "venta",
-			Type:        "casa",
-			Zone:        "G.B.A. Zona Sur",
-			Location:    "Lanús",
-			MinPriceUSD: 0,
-			MaxPriceUSD: 90000,
-		}
-
-		if err := searchProperties(database, filter, flags.TestMode); err != nil {
+		// Eliminamos los filtros fijos
+		if err := searchProperties(database, flags.TestMode); err != nil {
 			return fmt.Errorf("error en búsqueda de propiedades: %w", err)
 		}
 
@@ -93,8 +83,8 @@ func analyzeSystems(database *db.DB) error {
 	return analyzer.AnalyzeSystem(database)
 }
 
-func searchProperties(database *db.DB, filter models.PropertyFilter, testMode bool) error {
-	return analyzer.SearchProperties(database, filter, testMode)
+func searchProperties(database *db.DB, testMode bool) error {
+	return analyzer.SearchProperties(database, testMode)
 }
 
 func updateProperties(database *db.DB, testMode bool) error {

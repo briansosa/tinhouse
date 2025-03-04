@@ -21,17 +21,11 @@ func New(baseURL string) *Scraper {
 	}
 }
 
-func (s *Scraper) SearchProperties(ctx context.Context, filter models.PropertyFilter) ([]models.Property, error) {
+func (s *Scraper) SearchProperties(ctx context.Context) ([]models.Property, error) {
 	baseURL := strings.TrimRight(s.BaseURL, "/")
 
-	url := fmt.Sprintf("%s/Buscar?operation=%s&ptypes=%s&locations=%s&min-price=%.0f&max-price=%.0f&currency=USD&o=2,2&l=1",
-		baseURL,
-		operationToTokko(filter.Operation),
-		propertyTypeToTokko(filter.Type),
-		locationToTokko(filter.Location),
-		filter.MinPriceUSD,
-		filter.MaxPriceUSD,
-	)
+	// Simplificamos la URL para obtener todas las propiedades sin filtros
+	url := fmt.Sprintf("%s/Buscar", baseURL)
 
 	fmt.Printf("Buscando en URL: %s\n", url)
 

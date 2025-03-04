@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/findhouse/internal/db"
-	"github.com/findhouse/internal/models"
 	"github.com/findhouse/internal/scraper"
 	"github.com/findhouse/internal/scraper/tokko"
 	"golang.org/x/exp/rand"
@@ -129,17 +128,7 @@ func AnalyzeSystem(database *db.DB) error {
 	return nil
 }
 
-func SearchProperties(database *db.DB, filter models.PropertyFilter, testMode bool) error {
-	// Obtener/crear la búsqueda
-	busqueda, err := database.GetOrCreateBusqueda(filter)
-	if err != nil {
-		return fmt.Errorf("error preparando búsqueda: %v", err)
-	}
-
-	fmt.Printf("Búsqueda ID: %d (creada: %s)\n",
-		busqueda.ID,
-		busqueda.CreatedAt.Format("2006-01-02 15:04:05"))
-
+func SearchProperties(database *db.DB, testMode bool) error {
 	// Obtener todas las inmobiliarias con sistema
 	inmobiliarias, err := database.GetInmobiliariasSistema()
 	if err != nil {
@@ -169,7 +158,8 @@ func SearchProperties(database *db.DB, filter models.PropertyFilter, testMode bo
 		fmt.Printf("\nScrapeando %s (%s)...\n", inmo.Nombre, inmo.URL)
 
 		scraper := tokko.New(inmo.URL)
-		properties, err := scraper.SearchProperties(ctx, filter)
+		// Ya no pasamos filtros al scraper
+		properties, err := scraper.SearchProperties(ctx)
 		if err != nil {
 			log.Printf("Error scrapeando %s: %v\n", inmo.Nombre, err)
 			continue
@@ -189,7 +179,8 @@ func SearchProperties(database *db.DB, filter models.PropertyFilter, testMode bo
 				FechaScraping:  time.Now(),
 			}
 
-			err := database.CreatePropiedadAndLink(propiedad, busqueda.ID)
+			// Ya no vinculamos con búsqueda
+			err := database.CreatePropiedad(propiedad)
 			if err != nil {
 				log.Printf("Error guardando propiedad %s: %v\n", propiedad.Codigo, err)
 				continue
