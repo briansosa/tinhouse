@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/csv"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
@@ -101,116 +100,6 @@ var sistemasConocidos = []SistemaInmobiliario{
 			"nibiru",
 		},
 	},
-}
-
-func AnalyzeSites() {
-	// Inicializar Chrome
-	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", true),
-		chromedp.Flag("disable-gpu", true),
-		chromedp.Flag("no-sandbox", true),
-	)
-
-	allocCtx, cancel := chromedp.NewExecAllocator(context.Background(), opts...)
-	defer cancel()
-
-	ctx, cancel := chromedp.NewContext(allocCtx)
-	defer cancel()
-
-	file, err := os.Open("inmobiliarias_lanus.csv")
-	if err != nil {
-		log.Fatal("Error al abrir CSV:", err)
-	}
-	defer file.Close()
-
-	reader := csv.NewReader(file)
-	inmobiliarias, err := reader.ReadAll()
-	if err != nil {
-		log.Fatal("Error al leer CSV:", err)
-	}
-
-	// Mapa para contar sistemas
-	resultados := make(map[string][]string)
-	noIdentificados := make([]string, 0)
-
-	// Verificar si existe la columna Sistema
-	headers := inmobiliarias[0]
-	sistemaIndex := -1
-	for i, header := range headers {
-		if header == "Sistema" {
-			sistemaIndex = i
-			break
-		}
-	}
-
-	if sistemaIndex == -1 {
-		log.Fatal("No se encontró la columna Sistema en el CSV")
-	}
-
-	// Procesar solo las inmobiliarias sin sistema o con "No identificado"
-	for _, record := range inmobiliarias[1:] {
-		if len(record) <= sistemaIndex || record[sistemaIndex] == "" || record[sistemaIndex] == "No identificado" {
-			nombre := record[0]
-			sitioWeb := record[4]
-
-			if sitioWeb == "" {
-				continue
-			}
-
-			fmt.Printf("Analizando %s (%s)...\n", nombre, sitioWeb)
-
-			var htmlContent string
-			err := chromedp.Run(ctx,
-				chromedp.Navigate(sitioWeb),
-				chromedp.Sleep(2*time.Second),
-				chromedp.OuterHTML("html", &htmlContent),
-			)
-
-			if err != nil {
-				log.Printf("Error al acceder a %s: %v", sitioWeb, err)
-				continue
-			}
-
-			sistemaEncontrado := false
-			for _, sistema := range sistemasConocidos {
-				for _, marcador := range sistema.Marcadores {
-					if strings.Contains(strings.ToLower(htmlContent), strings.ToLower(marcador)) {
-						resultados[sistema.Nombre] = append(resultados[sistema.Nombre], fmt.Sprintf("%s (%s)", nombre, sitioWeb))
-						sistemaEncontrado = true
-						break
-					}
-				}
-				if sistemaEncontrado {
-					break
-				}
-			}
-
-			if !sistemaEncontrado {
-				noIdentificados = append(noIdentificados, fmt.Sprintf("%s (%s)", nombre, sitioWeb))
-			}
-		}
-	}
-
-	// Guardar resultados
-	if err := guardarResultados(inmobiliarias, resultados); err != nil {
-		log.Fatal("Error al guardar resultados:", err)
-	}
-
-	// Mostrar resumen de nuevos hallazgos
-	fmt.Println("\n=== Nuevos Sistemas Identificados ===")
-	for sistema, sitios := range resultados {
-		fmt.Printf("\n%s (%d sitios):\n", sistema, len(sitios))
-		for _, sitio := range sitios {
-			fmt.Printf("  - %s\n", sitio)
-		}
-	}
-
-	if len(noIdentificados) > 0 {
-		fmt.Printf("\nSiguen sin identificar (%d sitios):\n", len(noIdentificados))
-		for _, sitio := range noIdentificados {
-			fmt.Printf("  - %s\n", sitio)
-		}
-	}
 }
 
 // AnalyzeSystem analiza una URL y detecta qué sistema usa

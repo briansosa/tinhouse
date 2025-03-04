@@ -53,21 +53,17 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
 
   const handleRate = async (rating) => {
     if (isRating) {
-      console.log('Rating cancelado: ya está en proceso');
       return;
     }
     
-    console.log('Iniciando rating:', rating);
     setIsRating(true);
     try {
       const direction = rating === 'like' ? -CARD_WIDTH : CARD_WIDTH;
       
       // Primero hacemos el PUT a la API
-      console.log('Llamando a API para rating:', rating);
       await rateProperty(property.id, rating);
       
       // Luego la animación
-      console.log('Iniciando animación de rating');
       await animate(x, direction, { 
         type: "spring",
         stiffness: 1900,
@@ -75,7 +71,6 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
         duration: 0.5,
         velocity: 5,
         onComplete: () => {
-          console.log('Animación completada, llamando a onRate');
           onRate(rating);
           x.set(0);
         }
@@ -85,7 +80,6 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
       console.error('Error rating property:', error);
       animate(x, 0, { duration: 0.1 });
     } finally {
-      console.log('Finalizando proceso de rating');
       setIsRating(false);
       setShowNavBar(true);
       setShowDetails(false);
@@ -101,12 +95,10 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
   const bind = useDrag(({ down, movement: [mx], direction: [xDir], velocity, active, event, first, last, tap, memo }) => {
     // Si es un tap (clic sin arrastre), ignoramos el evento para el arrastre
     if (tap) {
-      console.log('Evento de tap detectado, ignorando para arrastre');
       return;
     }
     
     if (isRating || isTogglingDetails.current) {
-      console.log('Drag cancelado: isRating o isTogglingDetails activo');
       return;
     }
     
@@ -115,34 +107,15 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
       dragStartTime.current = Date.now();
       dragStartPosition.current = mx;
       hasMoved.current = false;
-      console.log('Inicio de arrastre registrado:', { time: dragStartTime.current, position: dragStartPosition.current });
     }
     
     // Determinar si ha habido movimiento significativo
     if (Math.abs(mx) > MOVEMENT_THRESHOLD && !hasMoved.current) {
       hasMoved.current = true;
-      console.log('Movimiento significativo detectado');
     }
     
     // Guardar la última posición de arrastre
     lastDragPosition.current = mx;
-    
-    console.log('Estado del drag:', { 
-      down, 
-      mx, 
-      velocity, 
-      active, 
-      first,
-      last,
-      tap,
-      hasMoved: hasMoved.current,
-      isDragging: isDragging,
-      isRating: isRating,
-      isTogglingDetails: isTogglingDetails.current,
-      dragTime: dragStartTime.current ? Date.now() - dragStartTime.current : null,
-      activationThreshold: ACTIVATION_THRESHOLD,
-      percentComplete: Math.abs(mx) / ACTIVATION_THRESHOLD * 100
-    });
     
     // Actualizar el estado de arrastre solo si hay movimiento real
     if (active && hasMoved.current) {
@@ -168,18 +141,15 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
 
     if (down) {
       // Mientras arrastramos
-      console.log('Arrastrando - mx:', mx, 'x actual:', x.get(), 'porcentaje:', Math.abs(mx) / ACTIVATION_THRESHOLD * 100 + '%');
       x.set(mx);
       
       // Si alcanzamos el umbral de activación mientras arrastramos, podemos activar el like/dislike
       if (Math.abs(mx) > ACTIVATION_THRESHOLD && hasMoved.current) {
-        console.log('Umbral de activación alcanzado mientras arrastramos');
         // Opcional: podríamos activar aquí, pero mejor esperar a que suelte
       }
     } else if (last && dragStartTime.current) {
       // Solo procesamos el final del arrastre cuando realmente es el último evento y tenemos un tiempo de inicio válido
       const dragDuration = Date.now() - dragStartTime.current;
-      console.log('Soltado - mx:', mx, 'velocity:', velocity[0], 'tiempo total:', dragDuration);
       
       // Verificar si fue un arrastre significativo
       const isQuickSwipe = Math.abs(velocity[0]) > 0.8;
@@ -187,23 +157,11 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
       // Solo consideramos significativo si hay movimiento real y no ha pasado demasiado tiempo
       const isSignificantDrag = (isQuickSwipe || isLongDrag) && Math.abs(mx) > MOVEMENT_THRESHOLD * 2 && dragDuration < 1000 && hasMoved.current;
       
-      console.log('Análisis de swipe:', { 
-        isQuickSwipe, 
-        isLongDrag, 
-        dragDuration, 
-        isSignificantDrag, 
-        absMovement: Math.abs(mx),
-        hasMoved: hasMoved.current,
-        percentComplete: Math.abs(mx) / ACTIVATION_THRESHOLD * 100 + '%'
-      });
-      
       if (isSignificantDrag) {
         const rating = mx > 0 ? 'dislike' : 'like';
-        console.log('Swipe detectado:', rating);
         handleRate(rating);
       } else {
         // Si no fue suficiente el swipe, volvemos al centro
-        console.log('Swipe insuficiente, volviendo al centro');
         animate(x, 0, { 
           type: "spring",
           duration: 0.15,
@@ -234,17 +192,11 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
   const handleToggleDetails = (e) => {
     // Si estamos arrastrando, no permitimos el toggle
     if (isDragging || hasMoved.current || Math.abs(lastDragPosition.current) > MOVEMENT_THRESHOLD) {
-      console.log('Toggle detalles cancelado: estamos arrastrando', { 
-        isDragging, 
-        hasMoved: hasMoved.current,
-        lastPosition: lastDragPosition.current 
-      });
       return;
     }
     
     // Marcamos que estamos en proceso de cambiar el estado de detalles
     isTogglingDetails.current = true;
-    console.log('Toggle detalles iniciado');
     
     // Cambiamos el estado de detalles
     setShowDetails(!showDetails);
@@ -252,7 +204,6 @@ export default function PropertyCard({ property, onRate, onUndo, canUndo, setSho
     // Después de un tiempo, indicamos que ya no estamos cambiando el estado
     setTimeout(() => {
       isTogglingDetails.current = false;
-      console.log('Toggle detalles completado');
     }, 300);
   };
 

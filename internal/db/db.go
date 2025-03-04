@@ -179,8 +179,6 @@ func (db *DB) ExistsInmobiliaria(nombre, direccion string) (bool, error) {
 	nombreNormalizado := normalizarTexto(nombre)
 	direccionNormalizada := normalizarTexto(direccion)
 
-	// Debug logs...
-
 	query := `
 		WITH normalized_data AS (
 			SELECT 
@@ -240,7 +238,6 @@ func (db *DB) ExistsInmobiliaria(nombre, direccion string) (bool, error) {
 	// Agregar comodines para búsqueda más flexible
 	nombreBusqueda := "%" + nombreNormalizado + "%"
 	direccionBusqueda := "%" + direccionNormalizada + "%"
-
 	err := db.QueryRow(query, nombreBusqueda, direccionBusqueda).Scan(&exists)
 	if err != nil {
 		return false, err
