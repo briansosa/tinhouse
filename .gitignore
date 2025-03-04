@@ -1,5 +1,12 @@
-# Base de datos
-cmd/api/*.db
+# SQLite database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# SQLite Journal Files
+*.db-journal
 
 # Logs
 logs
