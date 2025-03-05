@@ -52,4 +52,7 @@ type PropertyDetails struct {
 	Condicion          string
 	Orientacion        string
 	Disposicion        string
+	Servicios          []string // Agua Corriente, Cloaca, Gas Natural, etc.
+	TiposAmbientes     []string // Cocina, Comedor diario, Lavadero, etc.
+	Adicionales        []string // Calefacción, Apto profesional, etc.
 }

@@ -22,22 +22,23 @@ func NewHandler(db *db.DB) *Handler {
 
 // PropertyResponse es la estructura de respuesta para las propiedades
 type PropertyResponse struct {
-	ID           int64     `json:"id"`
-	Title        string    `json:"title"`
-	Code         string    `json:"code"`
-	Price        string    `json:"price"`
-	Location     string    `json:"location"`
-	PropertyType string    `json:"property_type,omitempty"`
-	ImageURL     string    `json:"image_url"`
-	Images       []string  `json:"images,omitempty"`
-	URL          string    `json:"url"`
-	Description  string    `json:"description,omitempty"`
-	LastUpdated  time.Time `json:"last_updated"`
-	CreatedAt    time.Time `json:"created_at"`
-	Details      Details   `json:"details"`
-	Agency       Agency    `json:"agency"`
-	HasNotes     bool      `json:"has_notes"`
-	IsFavorite   bool      `json:"is_favorite"`
+	ID           int64               `json:"id"`
+	Title        string              `json:"title"`
+	Code         string              `json:"code"`
+	Price        string              `json:"price"`
+	Location     string              `json:"location"`
+	PropertyType string              `json:"property_type,omitempty"`
+	ImageURL     string              `json:"image_url"`
+	Images       []string            `json:"images,omitempty"`
+	URL          string              `json:"url"`
+	Description  string              `json:"description,omitempty"`
+	LastUpdated  time.Time           `json:"last_updated"`
+	CreatedAt    time.Time           `json:"created_at"`
+	Details      Details             `json:"details"`
+	Agency       Agency              `json:"agency"`
+	HasNotes     bool                `json:"has_notes"`
+	IsFavorite   bool                `json:"is_favorite"`
+	Features     map[string][]string `json:"features,omitempty"`
 }
 
 type Details struct {
@@ -356,6 +357,12 @@ func (h *Handler) toPropertyResponse(p *db.Propiedad) PropertyResponse {
 		images = *p.Imagenes
 	}
 
+	// Verificar si la propiedad tiene notas
+	hasNotes, _ := h.db.PropertyHasNotes(p.ID)
+
+	// Obtener características de la propiedad
+	features, _ := h.db.GetPropertyFeaturesAsMap(p.ID)
+
 	return PropertyResponse{
 		ID:           p.ID,
 		Title:        p.Titulo,
@@ -385,7 +392,9 @@ func (h *Handler) toPropertyResponse(p *db.Propiedad) PropertyResponse {
 			BackSize:  p.Fondo,
 		},
 		Agency:     agency,
+		HasNotes:   hasNotes,
 		IsFavorite: p.IsFavorite,
+		Features:   features,
 	}
 }
 

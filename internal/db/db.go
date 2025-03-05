@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -418,6 +419,18 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 		}
 	}
 
+	// Comenzar una transacción
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("error iniciando transacción: %v", err)
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+			return
+		}
+	}()
+
 	query := `
 		UPDATE propiedades 
 		SET 
@@ -447,7 +460,7 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 		WHERE id = ?
 		RETURNING created_at, updated_at`
 
-	err = db.QueryRow(query,
+	err = tx.QueryRow(query,
 		p.TipoPropiedad,
 		string(imagenesJSON), // Convertimos el JSON a string
 		p.Ubicacion,
@@ -477,7 +490,120 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 		return fmt.Errorf("error actualizando detalles de propiedad %d: %v", p.ID, err)
 	}
 
+	// Si hay características para guardar, las guardamos usando la misma transacción
+	if p.Features != nil && len(p.Features) > 0 {
+		if err := db.SavePropertyFeaturesWithTx(tx, p.ID, p.Features); err != nil {
+			return fmt.Errorf("error guardando características: %v", err)
+		}
+	}
+
+	// Confirmar la transacción
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("error confirmando transacción: %v", err)
+	}
+
 	return nil
+}
+
+// SavePropertyFeaturesWithTx guarda las características de una propiedad usando una transacción existente
+func (db *DB) SavePropertyFeaturesWithTx(tx *sql.Tx, propertyID int64, features map[string][]string) error {
+	// Eliminar relaciones existentes dentro de la transacción
+	deleteQuery := `DELETE FROM property_feature_relations WHERE property_id = ?`
+	_, err := tx.Exec(deleteQuery, propertyID)
+	if err != nil {
+		return fmt.Errorf("error eliminando características existentes: %v", err)
+	}
+
+	// Para cada categoría y característica, buscamos su ID o la creamos si no existe
+	for category, names := range features {
+		for _, name := range names {
+			// Normalizar el nombre (trim y capitalizar primera letra)
+			name = strings.TrimSpace(name)
+			if name == "" {
+				continue
+			}
+
+			// Buscar la característica por nombre y categoría
+			var featureID int64
+			query := `SELECT id FROM property_features WHERE name = ? AND category = ?`
+			err := tx.QueryRow(query, name, category).Scan(&featureID)
+
+			if err == sql.ErrNoRows {
+				// La característica no existe, la creamos
+				insertQuery := `INSERT INTO property_features (name, category) VALUES (?, ?)`
+				result, err := tx.Exec(insertQuery, name, category)
+				if err != nil {
+					return fmt.Errorf("error creando característica %s (%s): %v", name, category, err)
+				}
+
+				featureID, err = result.LastInsertId()
+				if err != nil {
+					return fmt.Errorf("error obteniendo ID de característica: %v", err)
+				}
+			} else if err != nil {
+				return fmt.Errorf("error buscando característica %s (%s): %v", name, category, err)
+			}
+
+			// Crear la relación entre la propiedad y la característica
+			relationQuery := `INSERT OR IGNORE INTO property_feature_relations (property_id, feature_id) VALUES (?, ?)`
+			_, err = tx.Exec(relationQuery, propertyID, featureID)
+			if err != nil {
+				return fmt.Errorf("error creando relación para característica %d: %v", featureID, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// SavePropertyFeatures guarda las características de una propiedad
+func (db *DB) SavePropertyFeatures(propertyID int64, features map[string][]string) error {
+	// Implementar reintentos con backoff exponencial
+	maxRetries := 5
+	var lastErr error
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		// Si no es el primer intento, esperar con backoff exponencial
+		if attempt > 0 {
+			backoffTime := time.Duration(math.Pow(2, float64(attempt))) * 100 * time.Millisecond
+			time.Sleep(backoffTime)
+			fmt.Printf("Reintentando guardar características (intento %d/%d) después de %v\n",
+				attempt+1, maxRetries, backoffTime)
+		}
+
+		// Iniciar una transacción para asegurar consistencia
+		tx, err := db.Begin()
+		if err != nil {
+			lastErr = fmt.Errorf("error iniciando transacción: %v", err)
+			continue
+		}
+
+		// Usar la función con transacción
+		err = db.SavePropertyFeaturesWithTx(tx, propertyID, features)
+		if err != nil {
+			tx.Rollback()
+			if strings.Contains(err.Error(), "database is locked") {
+				lastErr = fmt.Errorf("base de datos bloqueada: %v", err)
+				continue // Reintentar
+			}
+			return err
+		}
+
+		// Confirmar la transacción
+		if err := tx.Commit(); err != nil {
+			if strings.Contains(err.Error(), "database is locked") {
+				lastErr = fmt.Errorf("base de datos bloqueada al confirmar transacción: %v", err)
+				continue // Reintentar
+			}
+			return fmt.Errorf("error confirmando transacción: %v", err)
+		}
+
+		// Si llegamos aquí, todo salió bien
+		return nil
+	}
+
+	// Si llegamos aquí, agotamos los reintentos
+	return fmt.Errorf("error guardando características después de %d intentos: %v", maxRetries, lastErr)
 }
 
 func (db *DB) GetInmobiliariaByID(id int64) (*Inmobiliaria, error) {
@@ -936,4 +1062,51 @@ func (db *DB) IsPropertyFavorite(propertyID int64) (bool, error) {
 	}
 
 	return isFavorite, nil
+}
+
+// GetPropertyFeatures obtiene todas las características de una propiedad
+func (db *DB) GetPropertyFeatures(propertyID int64) (map[string][]PropertyFeature, error) {
+	query := `
+		SELECT f.id, f.name, f.category, f.created_at
+		FROM property_features f
+		JOIN property_feature_relations r ON f.id = r.feature_id
+		WHERE r.property_id = ?
+		ORDER BY f.category, f.name
+	`
+
+	rows, err := db.Query(query, propertyID)
+	if err != nil {
+		return nil, fmt.Errorf("error obteniendo características de la propiedad %d: %v", propertyID, err)
+	}
+	defer rows.Close()
+
+	// Agrupar características por categoría
+	result := make(map[string][]PropertyFeature)
+	for rows.Next() {
+		var feature PropertyFeature
+		if err := rows.Scan(&feature.ID, &feature.Name, &feature.Category, &feature.CreatedAt); err != nil {
+			return nil, fmt.Errorf("error escaneando característica: %v", err)
+		}
+
+		result[feature.Category] = append(result[feature.Category], feature)
+	}
+
+	return result, nil
+}
+
+// GetPropertyFeaturesAsMap obtiene todas las características de una propiedad como un mapa
+func (db *DB) GetPropertyFeaturesAsMap(propertyID int64) (map[string][]string, error) {
+	features, err := db.GetPropertyFeatures(propertyID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(map[string][]string)
+	for category, featureList := range features {
+		for _, feature := range featureList {
+			result[category] = append(result[category], feature.Name)
+		}
+	}
+
+	return result, nil
 }

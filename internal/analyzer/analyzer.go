@@ -295,6 +295,19 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 		prop.Condicion = &details.Condicion
 		prop.Orientacion = &details.Orientacion
 		prop.Disposicion = &details.Disposicion
+
+		// Preparar las características para guardar
+		prop.Features = make(map[string][]string)
+		if len(details.Servicios) > 0 {
+			prop.Features["servicio"] = details.Servicios
+		}
+		if len(details.TiposAmbientes) > 0 {
+			prop.Features["ambiente"] = details.TiposAmbientes
+		}
+		if len(details.Adicionales) > 0 {
+			prop.Features["adicional"] = details.Adicionales
+		}
+
 		prop.Status = "completed"
 		actualizadas++
 

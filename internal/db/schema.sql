@@ -92,9 +92,30 @@ CREATE TABLE IF NOT EXISTS property_notes (
     FOREIGN KEY (property_id) REFERENCES propiedades(id)
 );
 
+-- Tabla para almacenar características normalizadas
+CREATE TABLE IF NOT EXISTS property_features (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    category TEXT NOT NULL, -- 'servicio', 'ambiente', 'adicional'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de relación entre propiedades y características
+CREATE TABLE IF NOT EXISTS property_feature_relations (
+    property_id INTEGER NOT NULL,
+    feature_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (property_id, feature_id),
+    FOREIGN KEY (property_id) REFERENCES propiedades(id) ON DELETE CASCADE,
+    FOREIGN KEY (feature_id) REFERENCES property_features(id) ON DELETE CASCADE
+);
+
 -- Índices para mejorar performance
 CREATE INDEX IF NOT EXISTS idx_propiedades_codigo ON propiedades(codigo);
 CREATE INDEX IF NOT EXISTS idx_propiedades_inmobiliaria ON propiedades(inmobiliaria_id);
 CREATE INDEX IF NOT EXISTS idx_busquedas_fecha ON busquedas(created_at);
 CREATE INDEX IF NOT EXISTS idx_property_ratings_property_id ON property_ratings(property_id);
-CREATE INDEX IF NOT EXISTS idx_property_notes_property_id ON property_notes(property_id); 
+CREATE INDEX IF NOT EXISTS idx_property_notes_property_id ON property_notes(property_id);
+CREATE INDEX IF NOT EXISTS idx_property_feature_relations_property_id ON property_feature_relations(property_id);
+CREATE INDEX IF NOT EXISTS idx_property_feature_relations_feature_id ON property_feature_relations(feature_id);
+CREATE INDEX IF NOT EXISTS idx_property_features_category ON property_features(category); 

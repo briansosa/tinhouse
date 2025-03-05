@@ -68,6 +68,9 @@ type Propiedad struct {
 
 	// Campo virtual para indicar si es favorita
 	IsFavorite bool `db:"-"`
+
+	// Campo virtual para características agrupadas por categoría
+	Features map[string][]string `db:"-"`
 }
 
 // BusquedaPropiedad representa la relación entre búsquedas y propiedades
@@ -110,4 +113,19 @@ type PropertyFilter struct {
 	Antiquity         *int     `json:"antiquity"`
 	ShowOnlyWithNotes bool     `json:"show_only_with_notes"`
 	ShowOnlyFavorites bool     `json:"show_only_favorites"`
+}
+
+// PropertyFeature representa una característica de una propiedad
+type PropertyFeature struct {
+	ID        int64     `db:"id" json:"id"`
+	Name      string    `db:"name" json:"name"`
+	Category  string    `db:"category" json:"category"` // 'servicio', 'ambiente', 'adicional'
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
+}
+
+// PropertyFeatureRelation representa la relación entre una propiedad y una característica
+type PropertyFeatureRelation struct {
+	PropertyID int64     `db:"property_id" json:"property_id"`
+	FeatureID  int64     `db:"feature_id" json:"feature_id"`
+	CreatedAt  time.Time `db:"created_at" json:"created_at"`
 }
