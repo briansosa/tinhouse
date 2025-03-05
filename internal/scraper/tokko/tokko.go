@@ -256,6 +256,83 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 				const images = Array.from(document.querySelectorAll('#ficha_slider .slides li:not(.bx-clone) img'))
 					.map(img => img.src);
 
+				// Extraer coordenadas del mapa
+				let latitud = 0;
+				let longitud = 0;
+
+				// Método 1: Buscar en el iframe de Google Maps
+				const mapIframe = document.querySelector('iframe[src*="google.com/maps"]');
+				if (mapIframe) {
+					const src = mapIframe.src;
+					const latMatch = src.match(/q=(-?\d+\.\d+),/);
+					const lngMatch = src.match(/,(-?\d+\.\d+)/);
+					
+					if (latMatch && latMatch[1]) {
+						latitud = parseFloat(latMatch[1]);
+					}
+					
+					if (lngMatch && lngMatch[1]) {
+						longitud = parseFloat(lngMatch[1]);
+					}
+				}
+
+				// Método 2: Buscar en atributos data-* de elementos del mapa
+				if (latitud === 0 && longitud === 0) {
+					const mapElement = document.querySelector('[data-lat][data-lng]');
+					if (mapElement) {
+						const lat = mapElement.getAttribute('data-lat');
+						const lng = mapElement.getAttribute('data-lng');
+						
+						if (lat) latitud = parseFloat(lat);
+						if (lng) longitud = parseFloat(lng);
+					}
+				}
+
+				// Método 3: Buscar en scripts de la página
+				if (latitud === 0 && longitud === 0) {
+					const scripts = document.querySelectorAll('script');
+					for (const script of scripts) {
+						const content = script.textContent;
+						if (content && (content.includes('google.maps') || content.includes('LatLng'))) {
+							const latMatch = content.match(/lat[:\s]*(-?\d+\.\d+)/i);
+							const lngMatch = content.match(/lng[:\s]*(-?\d+\.\d+)/i);
+							
+							if (latMatch && latMatch[1]) {
+								latitud = parseFloat(latMatch[1]);
+							}
+							
+							if (lngMatch && lngMatch[1]) {
+								longitud = parseFloat(lngMatch[1]);
+							}
+							
+							if (latitud !== 0 && longitud !== 0) break;
+						}
+					}
+				}
+
+				// Método 4: Buscar en elementos con clase específica
+				if (latitud === 0 && longitud === 0) {
+					const mapClasses = ['.map', '.google-map', '.property-map', '.location-map', '#map'];
+					for (const className of mapClasses) {
+						try {
+							const mapElement = document.querySelector(className);
+							if (mapElement) {
+								const lat = mapElement.getAttribute('data-lat') || mapElement.getAttribute('data-latitude');
+								const lng = mapElement.getAttribute('data-lng') || mapElement.getAttribute('data-longitude');
+								
+								if (lat) latitud = parseFloat(lat);
+								if (lng) longitud = parseFloat(lng);
+								
+								if (latitud !== 0 && longitud !== 0) break;
+							}
+						} catch (e) {
+							console.error('Error al buscar mapa por clase:', e);
+						}
+					}
+				}
+
+				console.log('Coordenadas extraídas:', { latitud, longitud });
+
 				// Extraer servicios, ambientes y adicionales
 				function extractFeatures(title) {
 					// Método 1: Buscar por título h2 o div.titulo2
@@ -791,7 +868,9 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 					disposicion,
 					servicios,
 					tiposAmbientes,
-					adicionales
+					adicionales,
+					latitud,
+					longitud
 				};
 			})()
 		`, &details),

@@ -360,7 +360,8 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 			NULLIF(cocheras, '') as cocheras,
 			situacion,
 			NULLIF(expensas, '') as expensas,
-			descripcion, status, operacion, condicion, orientacion, disposicion
+			descripcion, status, operacion, condicion, orientacion, disposicion,
+			latitud, longitud
 		FROM propiedades
 		WHERE status = 'pending'
 		ORDER BY created_at DESC`
@@ -371,38 +372,7 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 	}
 	defer rows.Close()
 
-	var propiedades []Propiedad
-	for rows.Next() {
-		var p Propiedad
-		var imagenesJSON sql.NullString // Para manejar NULL en la base de datos
-
-		err := rows.Scan(
-			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
-			&p.URL, &p.ImagenURL, &imagenesJSON, // Usamos imagenesJSON en lugar de p.Imagenes directamente
-			&p.CreatedAt, &p.UpdatedAt,
-			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
-			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
-			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
-			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status, &p.Operacion,
-			&p.Condicion, &p.Orientacion, &p.Disposicion,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
-		}
-
-		// Deserializar JSON si existe
-		if imagenesJSON.Valid && imagenesJSON.String != "" {
-			var imagenes []string
-			if err := json.Unmarshal([]byte(imagenesJSON.String), &imagenes); err != nil {
-				return nil, fmt.Errorf("error deserializando imágenes: %v", err)
-			}
-			p.Imagenes = &imagenes
-		}
-
-		propiedades = append(propiedades, p)
-	}
-
-	return propiedades, nil
+	return scanPropiedades(rows)
 }
 
 // UpdatePropiedadDetalles actualiza solo los campos de detalles de una propiedad
@@ -456,6 +426,8 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 			condicion = ?,
 			orientacion = ?,
 			disposicion = ?,
+			latitud = ?,
+			longitud = ?,
 			updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 		RETURNING created_at, updated_at`
@@ -483,6 +455,8 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 		p.Condicion,
 		p.Orientacion,
 		p.Disposicion,
+		p.Latitud,
+		p.Longitud,
 		p.ID,
 	).Scan(&p.CreatedAt, &p.UpdatedAt)
 
@@ -634,7 +608,7 @@ func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) 
 			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
 			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
 			p.situacion, p.expensas, p.descripcion, p.status, p.operacion,
-			p.condicion, p.orientacion, p.disposicion
+			p.condicion, p.orientacion, p.disposicion, p.latitud, p.longitud
 		FROM propiedades p
 		WHERE NOT EXISTS (
 			SELECT 1 
@@ -670,7 +644,7 @@ func (db *DB) GetLikedProperties(filter *PropertyFilter) ([]Propiedad, error) {
 			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
 			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
 			p.situacion, p.expensas, p.descripcion, p.status, p.operacion,
-			p.condicion, p.orientacion, p.disposicion
+			p.condicion, p.orientacion, p.disposicion, p.latitud, p.longitud
 		FROM propiedades p
 		INNER JOIN property_ratings r ON r.property_id = p.id
 		WHERE r.rating = 'like'`
@@ -708,7 +682,7 @@ func scanPropiedades(rows *sql.Rows) ([]Propiedad, error) {
 			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
 			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
 			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status, &p.Operacion,
-			&p.Condicion, &p.Orientacion, &p.Disposicion,
+			&p.Condicion, &p.Orientacion, &p.Disposicion, &p.Latitud, &p.Longitud,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
@@ -1024,7 +998,7 @@ func (db *DB) GetFavoriteProperties(filter *PropertyFilter) ([]Propiedad, error)
 			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
 			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
 			p.situacion, p.expensas, p.descripcion, p.status, p.operacion,
-			p.condicion, p.orientacion, p.disposicion
+			p.condicion, p.orientacion, p.disposicion, p.latitud, p.longitud
 		FROM propiedades p
 		INNER JOIN property_ratings r ON r.property_id = p.id
 		WHERE r.rating = 'like' AND r.is_favorite = 1`

@@ -65,6 +65,8 @@ type Propiedad struct {
 	Condicion          *string  `db:"condicion"`
 	Orientacion        *string  `db:"orientacion"`
 	Disposicion        *string  `db:"disposicion"`
+	Latitud            *float64 `db:"latitud"`
+	Longitud           *float64 `db:"longitud"`
 
 	// Campo virtual para indicar si es favorita
 	IsFavorite bool `db:"-"`

@@ -55,6 +55,8 @@ type Details struct {
 	Age       *string  `json:"age,omitempty"`
 	FrontSize *float64 `json:"front_size,omitempty"`
 	BackSize  *float64 `json:"back_size,omitempty"`
+	Latitude  *float64 `json:"latitude,omitempty"`
+	Longitude *float64 `json:"longitude,omitempty"`
 }
 
 type Agency struct {
@@ -390,6 +392,8 @@ func (h *Handler) toPropertyResponse(p *db.Propiedad) PropertyResponse {
 			Age:       p.Antiguedad,
 			FrontSize: p.Frente,
 			BackSize:  p.Fondo,
+			Latitude:  p.Latitud,
+			Longitude: p.Longitud,
 		},
 		Agency:     agency,
 		HasNotes:   hasNotes,

@@ -296,6 +296,13 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 		prop.Orientacion = &details.Orientacion
 		prop.Disposicion = &details.Disposicion
 
+		// Asignar coordenadas si están disponibles
+		if details.Latitud != 0 && details.Longitud != 0 {
+			prop.Latitud = &details.Latitud
+			prop.Longitud = &details.Longitud
+			fmt.Printf("   Coordenadas: Lat %f, Lng %f\n", details.Latitud, details.Longitud)
+		}
+
 		// Preparar las características para guardar
 		prop.Features = make(map[string][]string)
 		if len(details.Servicios) > 0 {

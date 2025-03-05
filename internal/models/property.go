@@ -55,4 +55,6 @@ type PropertyDetails struct {
 	Servicios          []string // Agua Corriente, Cloaca, Gas Natural, etc.
 	TiposAmbientes     []string // Cocina, Comedor diario, Lavadero, etc.
 	Adicionales        []string // Calefacción, Apto profesional, etc.
+	Latitud            float64  // Coordenada de latitud del mapa
+	Longitud           float64  // Coordenada de longitud del mapa
 }
