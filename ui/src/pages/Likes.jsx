@@ -6,7 +6,6 @@ import PropertyDetails from '../components/PropertyDetails/PropertyDetails';
 import Filters from '../components/Filters/Filters';
 import FilterChips from '../components/Filters/FilterChips';
 import axios from 'axios';
-import api from '../services/api';
 
 export default function Likes({ setShowNavBar }) {
     const [likedProperties, setLikedProperties] = useState([]);
@@ -59,7 +58,7 @@ export default function Likes({ setShowNavBar }) {
             }
             
             // Crear un nuevo token de cancelación
-            const source = api.CancelToken.source();
+            const source = axios.CancelToken.source();
             activeRequest.current = source;
             
             const response = await getLikedProperties(filters, source.token);
