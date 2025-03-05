@@ -44,6 +44,22 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	// Middleware CORS
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	})
+
 	// Rutas
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/properties/unrated", h.GetUnratedProperties)
@@ -56,6 +72,12 @@ func main() {
 		r.Get("/properties/{id}/notes", h.GetPropertyNotes)
 		r.Post("/properties/{id}/notes", h.AddPropertyNote)
 		r.Delete("/properties/notes/{noteId}", h.DeletePropertyNote)
+
+		// Ruta para obtener características disponibles
+		r.Get("/features", h.GetAvailableFeatures)
+
+		// Ruta para obtener tipos de propiedad
+		r.Get("/property-types", h.GetPropertyTypes)
 	})
 
 	// Iniciar servidor

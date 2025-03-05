@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"strconv"
@@ -218,7 +219,34 @@ func ptr[T any](v T) *T {
 	return &v
 }
 
-// UpdateProperties actualiza los detalles de las propiedades pendientes
+// normalizarTipoPropiedad normaliza el tipo de propiedad para que coincida con los códigos en la base de datos
+func normalizarTipoPropiedad(tipo string) string {
+	// Convertir a minúsculas y eliminar espacios
+	tipo = strings.TrimSpace(tipo)
+
+	// Mapeo de tipos comunes
+	switch strings.ToLower(tipo) {
+	case "casa", "chalet", "casa chalet", "casa quinta", "quinta":
+		return "Casa"
+	case "departamento", "depto", "dpto", "dpto.", "depto.", "departamento con dependencia":
+		return "Departamento"
+	case "ph", "p.h.", "p.h", "propiedad horizontal":
+		return "PH"
+	case "local", "local comercial", "fondo de comercio":
+		return "Local"
+	case "oficina", "consultorio", "estudio":
+		return "Oficina"
+	case "terreno", "lote", "lote de terreno", "fracción", "fraccion":
+		return "Terreno"
+	case "galpón", "galpon", "depósito", "deposito", "nave industrial":
+		return "Galpón"
+	default:
+		// Si no hay coincidencia, devolvemos el tipo original
+		return tipo
+	}
+}
+
+// UpdateProperties actualiza los detalles de las propiedades en la base de datos
 func UpdateProperties(database *db.DB, testMode bool) error {
 	ctx := context.Background()
 
@@ -284,8 +312,34 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 			continue
 		}
 
+		// Normalizar el tipo de propiedad
+		tipoNormalizado := normalizarTipoPropiedad(details.TipoPropiedad)
+
+		// Obtener el ID del tipo de propiedad
+		var tipoID int64
+		err = database.QueryRow(`
+			SELECT id FROM property_types WHERE name = ?
+		`, tipoNormalizado).Scan(&tipoID)
+		if err != nil {
+			// Si no existe, intentar insertar
+			if err == sql.ErrNoRows {
+				// Generar un código a partir del nombre
+				code := strings.ToLower(strings.ReplaceAll(tipoNormalizado, " ", "_"))
+				result, err := database.Exec(`
+					INSERT INTO property_types (code, name) VALUES (?, ?)
+				`, code, tipoNormalizado)
+				if err != nil {
+					log.Printf("Error al insertar tipo de propiedad '%s': %v\n", tipoNormalizado, err)
+				} else {
+					tipoID, _ = result.LastInsertId()
+				}
+			} else {
+				log.Printf("Error al obtener ID para tipo de propiedad '%s': %v\n", tipoNormalizado, err)
+			}
+		}
+
 		// Actualizar los campos de la propiedad con los detalles obtenidos
-		prop.TipoPropiedad = &details.TipoPropiedad
+		prop.TipoPropiedad = &tipoID
 		prop.Ubicacion = &details.Ubicacion
 		prop.Dormitorios = &details.Dormitorios
 		prop.Banios = &details.Banios

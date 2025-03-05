@@ -1,19 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getPropertyTypes } from '../../services/api';
 
 const FilterChips = ({ filters, onRemove }) => {
+    const [propertyTypeLabels, setPropertyTypeLabels] = useState({
+        house: 'Casa',
+        apartment: 'Departamento',
+        ph: 'PH'
+    });
+
+    // Cargar los tipos de propiedad desde el backend
+    useEffect(() => {
+        const fetchPropertyTypes = async () => {
+            try {
+                const response = await getPropertyTypes();
+                if (response.data && response.data.length > 0) {
+                    const typeMap = {};
+                    response.data.forEach(type => {
+                        typeMap[type.code] = type.name;
+                    });
+                    setPropertyTypeLabels(typeMap);
+                }
+            } catch (error) {
+                console.error('Error al cargar tipos de propiedad:', error);
+            }
+        };
+
+        fetchPropertyTypes();
+    }, []);
+
     const getChips = () => {
         const chips = [];
 
         // Tipo de propiedad
         if (filters.propertyType && filters.propertyType !== 'all') {
-            const propertyTypes = {
-                'house': 'Casa',
-                'apartment': 'Departamento',
-                'ph': 'PH'
-            };
             chips.push({
                 id: 'propertyType',
-                label: propertyTypes[filters.propertyType],
+                label: propertyTypeLabels[filters.propertyType] || filters.propertyType,
                 onRemove: () => onRemove('propertyType', 'all')
             });
         }

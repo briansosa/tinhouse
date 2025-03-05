@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strconv"
 	"strings"
 	"time"
 
@@ -600,6 +601,8 @@ func (db *DB) GetInmobiliariaByID(id int64) (*Inmobiliaria, error) {
 
 // GetUnratedProperties retorna las propiedades sin calificar
 func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) {
+	fmt.Printf("GetUnratedProperties con filtro: %+v\n", filter)
+
 	baseQuery := `
 		SELECT 
 			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
@@ -625,13 +628,17 @@ func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) 
 
 	baseQuery += " ORDER BY p.created_at DESC"
 
+	fmt.Printf("Query final: %s\nArgs: %v\n", baseQuery, args)
+
 	rows, err := db.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error consultando propiedades sin calificar: %v", err)
 	}
 	defer rows.Close()
 
-	return scanPropiedades(rows)
+	propiedades, err := scanPropiedades(rows)
+	fmt.Printf("Propiedades encontradas: %d\n", len(propiedades))
+	return propiedades, err
 }
 
 // GetLikedProperties retorna las propiedades que tienen like
@@ -670,36 +677,50 @@ func (db *DB) GetLikedProperties(filter *PropertyFilter) ([]Propiedad, error) {
 // Helper para escanear propiedades desde filas de resultados
 func scanPropiedades(rows *sql.Rows) ([]Propiedad, error) {
 	var propiedades []Propiedad
+	var count int
+
 	for rows.Next() {
+		count++
 		var p Propiedad
-		var imagenesJSON sql.NullString // Para manejar NULL en la base de datos
+		var imagenes sql.NullString
 
 		err := rows.Scan(
 			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
-			&p.URL, &p.ImagenURL, &imagenesJSON, // Usamos imagenesJSON en lugar de p.Imagenes directamente
-			&p.CreatedAt, &p.UpdatedAt,
+			&p.URL, &p.ImagenURL, &imagenes, &p.CreatedAt, &p.UpdatedAt,
 			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
 			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
 			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
 			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status, &p.Operacion,
 			&p.Condicion, &p.Orientacion, &p.Disposicion, &p.Latitud, &p.Longitud,
 		)
+
 		if err != nil {
+			fmt.Printf("Error escaneando propiedad #%d: %v\n", count, err)
 			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
 		}
 
-		// Deserializar JSON si existe
-		if imagenesJSON.Valid && imagenesJSON.String != "" {
-			var imagenes []string
-			if err := json.Unmarshal([]byte(imagenesJSON.String), &imagenes); err != nil {
-				return nil, fmt.Errorf("error deserializando imágenes: %v", err)
+		// Convertir string de imágenes a slice
+		if imagenes.Valid {
+			var imgs []string
+			if err := json.Unmarshal([]byte(imagenes.String), &imgs); err != nil {
+				fmt.Printf("Error deserializando imágenes para propiedad #%d: %v\n", count, err)
+				p.Imagenes = &[]string{}
+			} else {
+				p.Imagenes = &imgs
 			}
-			p.Imagenes = &imagenes
+		} else {
+			p.Imagenes = &[]string{}
 		}
 
 		propiedades = append(propiedades, p)
 	}
 
+	if err := rows.Err(); err != nil {
+		fmt.Printf("Error iterando filas: %v\n", err)
+		return nil, fmt.Errorf("error iterando propiedades: %v", err)
+	}
+
+	fmt.Printf("Total de propiedades escaneadas: %d\n", count)
 	return propiedades, nil
 }
 
@@ -709,13 +730,22 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		return nil, nil
 	}
 
+	fmt.Printf("Construyendo condiciones para filtro: %+v\n", filter)
+
 	var conditions []string
 	var args []interface{}
 
 	// Filtro por tipo de propiedad
-	if filter.PropertyType != "" && filter.PropertyType != "all" {
+	if filter.PropertyTypeID != nil {
+		// Usar directamente el ID del tipo de propiedad
 		conditions = append(conditions, "p.tipo_propiedad = ?")
+		args = append(args, *filter.PropertyTypeID)
+		fmt.Printf("Agregando condición de tipo_propiedad con ID: %d\n", *filter.PropertyTypeID)
+	} else if filter.PropertyType != "" && filter.PropertyType != "all" {
+		// Mantener compatibilidad con el filtro por código
+		conditions = append(conditions, "p.tipo_propiedad = (SELECT id FROM property_types WHERE code = ?)")
 		args = append(args, filter.PropertyType)
+		fmt.Printf("Agregando condición de tipo_propiedad con código: %s\n", filter.PropertyType)
 	}
 
 	// Filtro por ubicaciones
@@ -760,13 +790,13 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 
 	// Filtro por tamaño (superficie)
 	if filter.SizeMin != nil {
-		conditions = append(conditions, "p.superficie_total >= ?")
-		args = append(args, *filter.SizeMin)
+		conditions = append(conditions, "(p.superficie_total >= ? OR p.superficie_cubierta >= ?)")
+		args = append(args, *filter.SizeMin, *filter.SizeMin)
 	}
 
 	if filter.SizeMax != nil {
-		conditions = append(conditions, "p.superficie_total <= ?")
-		args = append(args, *filter.SizeMax)
+		conditions = append(conditions, "(p.superficie_total <= ? OR p.superficie_cubierta <= ?)")
+		args = append(args, *filter.SizeMax, *filter.SizeMax)
 	}
 
 	// Filtro por ambientes
@@ -783,25 +813,51 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 
 	// Filtro por antigüedad
 	if filter.Antiquity != nil {
-		// Convertir texto de antigüedad a un valor numérico aproximado
-		// Esto es una simplificación, idealmente se debería normalizar el campo en la base de datos
-		if *filter.Antiquity == 0 {
-			conditions = append(conditions, "(p.antiguedad LIKE '%estrenar%' OR p.antiguedad LIKE '%a estrenar%')")
-		} else {
-			conditions = append(conditions, "p.antiguedad LIKE ?")
-			args = append(args, fmt.Sprintf("%%%d%%", *filter.Antiquity))
+		// Manejo más preciso de la antigüedad
+		switch *filter.Antiquity {
+		case 0:
+			// A estrenar
+			conditions = append(conditions, "(p.antiguedad LIKE '%estrenar%' OR p.antiguedad LIKE '%a estrenar%' OR p.antiguedad LIKE '%nuevo%')")
+		case 100:
+			// Más de 30 años
+			conditions = append(conditions, "(CAST(REGEXP_REPLACE(p.antiguedad, '[^0-9]', '', 'g') AS INTEGER) > 30 OR p.antiguedad LIKE '%antiguo%' OR p.antiguedad LIKE '%antigua%')")
+		default:
+			// Hasta X años
+			conditions = append(conditions, "(CAST(REGEXP_REPLACE(p.antiguedad, '[^0-9]', '', 'g') AS INTEGER) <= ? OR p.antiguedad LIKE ?)")
+			args = append(args, *filter.Antiquity, fmt.Sprintf("%%hasta %d año%%", *filter.Antiquity))
 		}
 	}
 
 	// Filtro por características (features)
-	// Esto requeriría una tabla de características o buscar en la descripción
 	if len(filter.Features) > 0 {
-		featureConditions := make([]string, len(filter.Features))
-		for i, feature := range filter.Features {
-			featureConditions[i] = "p.descripcion LIKE ?"
-			args = append(args, "%"+feature+"%")
+		fmt.Printf("Procesando filtro de características: %v\n", filter.Features)
+
+		// Usar la tabla de relaciones de características con IDs numéricos
+		featureCondition := `p.id IN (
+			SELECT DISTINCT pf.property_id 
+			FROM property_feature_relations pf 
+			WHERE pf.feature_id IN (`
+
+		placeholders := make([]string, len(filter.Features))
+		featureIDs := make([]int64, 0, len(filter.Features))
+
+		for i := range filter.Features {
+			placeholders[i] = "?"
+			// Convertir string a int64
+			featureID, err := strconv.ParseInt(filter.Features[i], 10, 64)
+			if err != nil {
+				// Si no es un número válido, usar 0 (que no coincidirá con ningún ID)
+				featureID = 0
+				fmt.Printf("Error convirtiendo feature ID '%s': %v\n", filter.Features[i], err)
+			}
+			featureIDs = append(featureIDs, featureID)
+			args = append(args, featureID)
 		}
-		conditions = append(conditions, "("+strings.Join(featureConditions, " OR ")+")")
+
+		fmt.Printf("Filtrando por features IDs: %v\n", featureIDs)
+
+		featureCondition += strings.Join(placeholders, ", ") + "))"
+		conditions = append(conditions, featureCondition)
 	}
 
 	// Filtro para mostrar solo propiedades con notas
@@ -811,6 +867,14 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		)`)
 	}
 
+	// Filtro para mostrar solo propiedades favoritas
+	if filter.ShowOnlyFavorites {
+		conditions = append(conditions, `EXISTS (
+			SELECT 1 FROM property_ratings r WHERE r.property_id = p.id AND r.is_favorite = 1
+		)`)
+	}
+
+	fmt.Printf("Condiciones finales: %v\nArgs: %v\n", conditions, args)
 	return conditions, args
 }
 
@@ -1084,3 +1148,102 @@ func (db *DB) GetPropertyFeaturesAsMap(propertyID int64) (map[string][]string, e
 
 	return result, nil
 }
+
+// GetAllFeatures retorna todas las características disponibles
+func (db *DB) GetAllFeatures() ([]PropertyFeature, error) {
+	query := `SELECT id, name, category, created_at FROM property_features ORDER BY category, name`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error consultando características: %v", err)
+	}
+	defer rows.Close()
+
+	var features []PropertyFeature
+	for rows.Next() {
+		var feature PropertyFeature
+		if err := rows.Scan(&feature.ID, &feature.Name, &feature.Category, &feature.CreatedAt); err != nil {
+			return nil, fmt.Errorf("error escaneando característica: %v", err)
+		}
+		features = append(features, feature)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterando características: %v", err)
+	}
+
+	return features, nil
+}
+
+// GetAllPropertyTypes obtiene todos los tipos de propiedad disponibles
+func (db *DB) GetAllPropertyTypes() ([]PropertyType, error) {
+	fmt.Println("Ejecutando consulta para obtener todos los tipos de propiedad")
+
+	var types []PropertyType
+	query := `SELECT id, code, name, created_at FROM property_types ORDER BY name`
+	fmt.Println("Query:", query)
+
+	rows, err := db.Query(query)
+	if err != nil {
+		fmt.Printf("Error en la consulta: %v\n", err)
+		return nil, fmt.Errorf("error al obtener tipos de propiedad: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var pt PropertyType
+		if err := rows.Scan(&pt.ID, &pt.Code, &pt.Name, &pt.CreatedAt); err != nil {
+			fmt.Printf("Error al escanear fila: %v\n", err)
+			return nil, fmt.Errorf("error al escanear tipo de propiedad: %w", err)
+		}
+		types = append(types, pt)
+	}
+
+	if err := rows.Err(); err != nil {
+		fmt.Printf("Error al iterar filas: %v\n", err)
+		return nil, fmt.Errorf("error al iterar tipos de propiedad: %w", err)
+	}
+
+	fmt.Printf("Total de tipos de propiedad encontrados: %d\n", len(types))
+	return types, nil
+}
+
+// GetPropertyTypeByCode obtiene un tipo de propiedad por su código
+func (db *DB) GetPropertyTypeByCode(code string) (*PropertyType, error) {
+	var propertyType PropertyType
+	query := `SELECT id, code, name, created_at FROM property_types WHERE code = ?`
+
+	row := db.QueryRow(query, code)
+	err := row.Scan(&propertyType.ID, &propertyType.Code, &propertyType.Name, &propertyType.CreatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil // No se encontró, pero no es un error
+		}
+		return nil, fmt.Errorf("error al obtener tipo de propiedad por código: %w", err)
+	}
+
+	return &propertyType, nil
+}
+
+// GetPropertyTypeNameByCode obtiene el nombre de un tipo de propiedad por su código
+func (db *DB) GetPropertyTypeNameByCode(code string) (string, error) {
+	if code == "" || code == "all" {
+		return "", nil
+	}
+
+	var name string
+	query := `SELECT name FROM property_types WHERE code = ?`
+
+	row := db.QueryRow(query, code)
+	err := row.Scan(&name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return code, nil // Si no existe, devolvemos el código como fallback
+		}
+		return "", fmt.Errorf("error al obtener nombre de tipo de propiedad: %w", err)
+	}
+
+	return name, nil
+}
+
+// PropertyFeatureRelation representa la relación entre una propiedad y una característica

@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getLikedProperties, togglePropertyFavorite, dislikeProperty } from '../services/api';
 import LikedPropertyCard from '../components/LikedPropertyCard/LikedPropertyCard';
 import PropertyNotes from '../components/PropertyNotes/PropertyNotes';
 import PropertyDetails from '../components/PropertyDetails/PropertyDetails';
 import Filters from '../components/Filters/Filters';
 import FilterChips from '../components/Filters/FilterChips';
+import axios from 'axios';
+import api from '../services/api';
 
 export default function Likes({ setShowNavBar }) {
     const [likedProperties, setLikedProperties] = useState([]);
@@ -15,6 +17,7 @@ export default function Likes({ setShowNavBar }) {
     const [showFilters, setShowFilters] = useState(false);
     const [showSortMenu, setShowSortMenu] = useState(false);
     const [sortBy, setSortBy] = useState('recent');
+    const activeRequest = useRef(null);
     const [activeFilters, setActiveFilters] = useState({
         propertyType: null,
         showOnlyWithNotes: false,
@@ -37,16 +40,40 @@ export default function Likes({ setShowNavBar }) {
 
     useEffect(() => {
         fetchLikedProperties();
+        
+        return () => {
+            // Cancelar cualquier solicitud pendiente al desmontar
+            if (activeRequest.current) {
+                activeRequest.current.cancel();
+            }
+        };
     }, []);
 
     const fetchLikedProperties = async (filters = null) => {
         try {
             setIsLoading(true);
-            const response = await getLikedProperties(filters);
-            setLikedProperties(response.data.properties || []);
+            
+            // Cancelar cualquier solicitud activa
+            if (activeRequest.current) {
+                activeRequest.current.cancel();
+            }
+            
+            // Crear un nuevo token de cancelación
+            const source = api.CancelToken.source();
+            activeRequest.current = source;
+            
+            const response = await getLikedProperties(filters, source.token);
+            
+            // Solo actualizar si esta es la solicitud más reciente
+            if (activeRequest.current === source) {
+                setLikedProperties(response.data.properties || []);
+                activeRequest.current = null;
+            }
         } catch (err) {
-            setError('Error al cargar las propiedades');
-            console.error('Error fetching liked properties:', err);
+            if (!axios.isCancel(err)) {
+                setError('Error al cargar las propiedades');
+                console.error('Error fetching liked properties:', err);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -315,6 +342,7 @@ export default function Likes({ setShowNavBar }) {
 
                     {showFilters && (
                         <div className="absolute inset-0 bg-gray-950">
+                            {console.log("Montando componente Filters...")}
                             <Filters 
                                 initialFilters={activeFilters}
                                 onClose={() => {

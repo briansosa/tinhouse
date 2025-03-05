@@ -1,9 +1,48 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getAvailableFeatures } from '../../services/api';
 
 const FeaturesFilter = ({ onChange, initialFeatures = [] }) => {
-    const [selectedFeatures, setSelectedFeatures] = useState(initialFeatures);
+    // Asegurar que initialFeatures sea un array de strings
+    const normalizedInitialFeatures = initialFeatures.map(id => String(id));
     
-    const featureCategories = [
+    const [selectedFeatures, setSelectedFeatures] = useState(normalizedInitialFeatures);
+    const [featureCategories, setFeatureCategories] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    
+    // Cargar características desde el backend
+    useEffect(() => {
+        const fetchFeatures = async () => {
+            try {
+                setIsLoading(true);
+                const response = await getAvailableFeatures();
+                
+                // Normalizar los datos para asegurar que los IDs sean strings
+                const normalizedCategories = response.data.categories.map(category => ({
+                    ...category,
+                    features: category.features.map(feature => ({
+                        ...feature,
+                        id: String(feature.id) // Asegurar que el ID sea string
+                    }))
+                }));
+                
+                setFeatureCategories(normalizedCategories || []);
+                setError(null);
+            } catch (err) {
+                console.error('Error fetching features:', err);
+                setError('No se pudieron cargar las características');
+                // Usar categorías por defecto en caso de error
+                setFeatureCategories(defaultFeatureCategories);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        
+        fetchFeatures();
+    }, []);
+    
+    // Categorías por defecto en caso de error
+    const defaultFeatureCategories = [
         {
             id: 'general',
             name: 'GENERAL',
@@ -46,6 +85,7 @@ const FeaturesFilter = ({ onChange, initialFeatures = [] }) => {
     ];
 
     const handleFeatureToggle = (featureId) => {
+        // featureId ya debe ser string
         const newFeatures = selectedFeatures.includes(featureId)
             ? selectedFeatures.filter(id => id !== featureId)
             : [...selectedFeatures, featureId];
@@ -53,6 +93,22 @@ const FeaturesFilter = ({ onChange, initialFeatures = [] }) => {
         setSelectedFeatures(newFeatures);
         onChange(newFeatures);
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-4 text-center text-red-500">
+                {error}
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-12 px-4">

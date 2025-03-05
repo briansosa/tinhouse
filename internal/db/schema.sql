@@ -12,6 +12,20 @@ CREATE TABLE IF NOT EXISTS inmobiliarias (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de tipos de propiedad
+CREATE TABLE IF NOT EXISTS property_types (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,  -- Código interno (ej: 'house', 'apartment')
+    name TEXT NOT NULL,         -- Nombre para mostrar (ej: 'Casa', 'Departamento')
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insertar tipos de propiedad predeterminados
+INSERT OR IGNORE INTO property_types (code, name) VALUES 
+    ('house', 'Casa'),
+    ('apartment', 'Departamento'),
+    ('ph', 'PH');
+
 -- Tabla de búsquedas
 CREATE TABLE IF NOT EXISTS busquedas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

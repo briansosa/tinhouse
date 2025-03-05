@@ -44,7 +44,7 @@ type Propiedad struct {
 	UpdatedAt      time.Time `db:"updated_at"`
 
 	// Campos que pueden ser NULL
-	TipoPropiedad      *string  `db:"tipo_propiedad"`
+	TipoPropiedad      *int64   `db:"tipo_propiedad"`
 	Ubicacion          *string  `db:"ubicacion"`
 	Dormitorios        *int     `db:"dormitorios"`
 	Banios             *int     `db:"banios"`
@@ -103,6 +103,7 @@ type PropertyNote struct {
 // PropertyFilter representa los filtros aplicables a las propiedades
 type PropertyFilter struct {
 	PropertyType      string   `json:"property_type"`
+	PropertyTypeID    *int64   `json:"property_type_id"`
 	Locations         []string `json:"locations"`
 	Features          []string `json:"features"`
 	PriceMin          *float64 `json:"price_min"`
@@ -130,4 +131,12 @@ type PropertyFeatureRelation struct {
 	PropertyID int64     `db:"property_id" json:"property_id"`
 	FeatureID  int64     `db:"feature_id" json:"feature_id"`
 	CreatedAt  time.Time `db:"created_at" json:"created_at"`
+}
+
+// PropertyType representa un tipo de propiedad normalizado
+type PropertyType struct {
+	ID        int64     `db:"id" json:"id"`
+	Code      string    `db:"code" json:"code"`
+	Name      string    `db:"name" json:"name"`
+	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }

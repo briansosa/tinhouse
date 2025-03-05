@@ -365,13 +365,28 @@ func (h *Handler) toPropertyResponse(p *db.Propiedad) PropertyResponse {
 	// Obtener características de la propiedad
 	features, _ := h.db.GetPropertyFeaturesAsMap(p.ID)
 
+	// Obtener el tipo de propiedad
+	var propertyType string
+	if p.TipoPropiedad != nil {
+		// Obtener el código del tipo de propiedad
+		code := h.getPropertyTypeCodeById(*p.TipoPropiedad)
+
+		// Obtener el nombre del tipo de propiedad a partir del código
+		if name, err := h.db.GetPropertyTypeNameByCode(code); err == nil {
+			propertyType = name
+		} else {
+			// Si hay error, usar el código como fallback
+			propertyType = code
+		}
+	}
+
 	return PropertyResponse{
 		ID:           p.ID,
 		Title:        p.Titulo,
 		Code:         p.Codigo,
 		Price:        cleanPrice(p.Precio),
 		Location:     getLocation(p),
-		PropertyType: getString(p.TipoPropiedad),
+		PropertyType: propertyType,
 		ImageURL:     p.ImagenURL,
 		Images:       images,
 		URL:          p.URL,
@@ -443,23 +458,56 @@ func parsePropertyFilter(r *http.Request) (*db.PropertyFilter, error) {
 
 // parseFilterFromQueryParams parsea los filtros de los query params
 func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
-	filter := &db.PropertyFilter{
-		Currency: "ARS", // Valor por defecto
-	}
+	filter := &db.PropertyFilter{}
 
-	// Tipo de propiedad
+	// Imprimir todos los query params para depuración
+	fmt.Printf("Query params recibidos: %+v\n", r.URL.Query())
+
+	// Tipo de propiedad (por código)
 	if propertyType := r.URL.Query().Get("property_type"); propertyType != "" {
 		filter.PropertyType = propertyType
+		fmt.Printf("Filtro property_type (código): %s\n", propertyType)
+	}
+
+	// Tipo de propiedad (por ID)
+	if propertyTypeID := r.URL.Query().Get("property_type_id"); propertyTypeID != "" {
+		id, err := strconv.ParseInt(propertyTypeID, 10, 64)
+		if err != nil {
+			fmt.Printf("Error al convertir property_type_id a int64: %v\n", err)
+		} else {
+			filter.PropertyTypeID = &id
+			fmt.Printf("Filtro property_type_id: %d\n", id)
+		}
 	}
 
 	// Ubicaciones
 	if locations := r.URL.Query().Get("locations"); locations != "" {
 		filter.Locations = strings.Split(locations, ",")
+		fmt.Printf("Filtro locations: %v\n", filter.Locations)
 	}
 
-	// Características
-	if features := r.URL.Query().Get("features"); features != "" {
-		filter.Features = strings.Split(features, ",")
+	// Características - manejar múltiples formatos posibles
+	// 1. Formato de array: features[]=1&features[]=2
+	// 2. Formato de cadena separada por comas: features=1,2
+	features := r.URL.Query()["features[]"] // Intentar obtener como array
+	if len(features) == 0 {
+		// Si no hay resultados, intentar como parámetro simple
+		if featuresStr := r.URL.Query().Get("features"); featuresStr != "" {
+			features = strings.Split(featuresStr, ",")
+		}
+	}
+
+	// Limpiar valores vacíos
+	var cleanFeatures []string
+	for _, f := range features {
+		if f != "" {
+			cleanFeatures = append(cleanFeatures, f)
+		}
+	}
+
+	if len(cleanFeatures) > 0 {
+		filter.Features = cleanFeatures
+		fmt.Printf("Filtro features: %v\n", filter.Features)
 	}
 
 	// Precio mínimo
@@ -480,9 +528,12 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		filter.PriceMax = &max
 	}
 
-	// Moneda
+	// Moneda - solo establecer si se proporciona explícitamente o si hay filtros de precio
 	if currency := r.URL.Query().Get("currency"); currency != "" {
 		filter.Currency = currency
+	} else if filter.PriceMin != nil || filter.PriceMax != nil {
+		// Si hay filtros de precio pero no se especificó moneda, usar ARS por defecto
+		filter.Currency = "ARS"
 	}
 
 	// Tamaño mínimo
@@ -535,5 +586,144 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		filter.ShowOnlyWithNotes = true
 	}
 
+	// Imprimir filtro completo para depuración
+	fmt.Printf("Filtro completo: %+v\n", filter)
+
 	return filter, nil
+}
+
+// GetAvailableFeatures retorna todas las características disponibles agrupadas por categoría
+func (h *Handler) GetAvailableFeatures(w http.ResponseWriter, r *http.Request) {
+	features, err := h.db.GetAllFeatures()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error obteniendo características: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Agrupar características por categoría
+	categorizedFeatures := make(map[string][]map[string]interface{})
+	for _, feature := range features {
+		if _, exists := categorizedFeatures[feature.Category]; !exists {
+			categorizedFeatures[feature.Category] = []map[string]interface{}{}
+		}
+
+		featureMap := map[string]interface{}{
+			"id":   feature.ID, // Usar el ID numérico
+			"name": feature.Name,
+		}
+		categorizedFeatures[feature.Category] = append(categorizedFeatures[feature.Category], featureMap)
+	}
+
+	// Convertir a formato esperado por el frontend
+	var response []map[string]interface{}
+	for category, features := range categorizedFeatures {
+		categoryMap := map[string]interface{}{
+			"id":       strings.ToLower(category),
+			"name":     strings.ToUpper(category),
+			"features": features,
+		}
+		response = append(response, categoryMap)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"categories": response,
+	})
+}
+
+// GetPropertyTypes devuelve todos los tipos de propiedad disponibles
+func (h *Handler) GetPropertyTypes(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Recibida solicitud para obtener tipos de propiedad")
+
+	types, err := h.db.GetAllPropertyTypes()
+	if err != nil {
+		fmt.Printf("Error al obtener tipos de propiedad: %v\n", err)
+		http.Error(w, fmt.Sprintf("Error al obtener tipos de propiedad: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("Tipos de propiedad encontrados: %d\n", len(types))
+	for i, t := range types {
+		fmt.Printf("  %d. ID: %d, Code: %s, Name: %s\n", i+1, t.ID, t.Code, t.Name)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	json.NewEncoder(w).Encode(types)
+}
+
+// getPropertyTypeCode obtiene el código del tipo de propiedad
+func (h *Handler) getPropertyTypeCode(propertyType string) string {
+	if propertyType == "" {
+		return ""
+	}
+
+	// Consultar en la base de datos el código correspondiente al nombre
+	query := `SELECT code FROM property_types WHERE name = ?`
+	var code string
+
+	err := h.db.QueryRow(query, propertyType).Scan(&code)
+	if err != nil {
+		// Si hay error, intentamos hacer una coincidencia aproximada
+		fmt.Printf("Error al obtener código para tipo de propiedad '%s': %v\n", propertyType, err)
+
+		// Mapeo básico para compatibilidad
+		switch strings.ToLower(propertyType) {
+		case "casa", "chalet", "casa chalet", "casa quinta", "quinta":
+			return "house"
+		case "departamento", "depto", "dpto", "dpto.", "depto.", "departamento con dependencia":
+			return "apartment"
+		case "ph", "p.h.", "p.h", "propiedad horizontal":
+			return "ph"
+		case "local", "local comercial", "fondo de comercio":
+			return "local"
+		case "oficina", "consultorio", "estudio":
+			return "office"
+		case "terreno", "lote", "lote de terreno", "fracción", "fraccion":
+			return "land"
+		case "galpón", "galpon", "depósito", "deposito", "nave industrial":
+			return "warehouse"
+		default:
+			// Si no hay coincidencia, devolvemos el tipo en minúsculas como fallback
+			return strings.ToLower(strings.ReplaceAll(propertyType, " ", "_"))
+		}
+	}
+
+	return code
+}
+
+// getPropertyTypeCodeById obtiene el código del tipo de propiedad a partir del ID
+func (h *Handler) getPropertyTypeCodeById(propertyType int64) string {
+	// Consultar en la base de datos el código correspondiente al ID
+	query := `SELECT code FROM property_types WHERE id = ?`
+	var code string
+
+	err := h.db.QueryRow(query, propertyType).Scan(&code)
+	if err != nil {
+		// Si hay error, intentamos hacer una coincidencia aproximada
+		fmt.Printf("Error al obtener código para tipo de propiedad ID %d: %v\n", propertyType, err)
+
+		// Mapeo básico para compatibilidad
+		switch propertyType {
+		case 1:
+			return "house"
+		case 2:
+			return "apartment"
+		case 3:
+			return "ph"
+		case 4:
+			return "local"
+		case 5:
+			return "office"
+		case 6:
+			return "land"
+		case 7:
+			return "warehouse"
+		default:
+			// Si no hay coincidencia, devolvemos el ID como fallback
+			return fmt.Sprintf("type_%d", propertyType)
+		}
+	}
+
+	return code
 }

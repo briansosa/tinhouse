@@ -1,21 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FilterDrawer from './FilterDrawer';
 import PriceRangeFilter from './PriceRangeFilter';
 import LocationFilter from './LocationFilter';
 import FeaturesFilter from './FeaturesFilter';
 import SizeRangeFilter from './SizeRangeFilter';
 import RoomsFilter from './RoomsFilter';
+import BathroomsFilter from './BathroomsFilter';
 import AntiquityFilter from './AntiquityFilter';
+import FilterChips from './FilterChips';
+import PropertyTypeFilter from './PropertyTypeFilter';
 
 const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
-    const [filters, setFilters] = useState(initialFilters || {
+    const [filters, setFilters] = useState({
         propertyType: 'all',
         showOnlyWithNotes: false,
         showOnlyFavorites: false,
         priceRange: {
             min: null,
             max: null,
-            currency: 'ARS'
+            currency: 'USD'
         },
         locations: [],
         features: [],
@@ -37,14 +40,15 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [showBathroomsDrawer, setShowBathroomsDrawer] = useState(false);
     const [showAntiquityDrawer, setShowAntiquityDrawer] = useState(false);
 
-    const propertyTypes = [
-        { id: 'all', label: 'Todas' },
-        { id: 'house', label: 'Casa' },
-        { id: 'apartment', label: 'Departamento' },
-        { id: 'ph', label: 'PH' }
-    ];
-
-    const selectedPropertyType = propertyTypes.find(type => type.id === filters.propertyType);
+    // Inicializar filtros con los valores iniciales
+    useEffect(() => {
+        if (initialFilters) {
+            setFilters(prev => ({
+                ...prev,
+                ...initialFilters
+            }));
+        }
+    }, [initialFilters]);
 
     const formatPrice = (price) => {
         if (price === null) return 'Sin límite';
@@ -141,7 +145,9 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                 >
                     <span className="text-gray-200 dark:text-gray-200">Tipo de propiedad</span>
                     <div className="flex items-center">
-                        <span className="text-gray-400 dark:text-gray-400 mr-2">{selectedPropertyType?.label || 'Todas'}</span>
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">
+                            {filters.propertyType === 'all' ? 'Todas' : filters.propertyType}
+                        </span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -302,12 +308,15 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                 isOpen={showPropertyTypeDrawer}
                 onClose={() => setShowPropertyTypeDrawer(false)}
                 title="TIPO DE PROPIEDAD"
-                options={propertyTypes}
-                selectedValue={filters.propertyType}
-                onSelect={(value) => {
-                    setFilters(prev => ({ ...prev, propertyType: value }));
-                    setShowPropertyTypeDrawer(false);
-                }}
+                customContent={
+                    <PropertyTypeFilter
+                        initialValue={filters.propertyType}
+                        onChange={(value) => {
+                            setFilters(prev => ({ ...prev, propertyType: value }));
+                            setShowPropertyTypeDrawer(false);
+                        }}
+                    />
+                }
             />
 
             <FilterDrawer 
@@ -376,7 +385,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                 onClose={() => setShowBathroomsDrawer(false)}
                 title="BAÑOS"
                 customContent={
-                    <RoomsFilter
+                    <BathroomsFilter
                         initialValue={filters.bathrooms}
                         onChange={(value) => setFilters(prev => ({
                             ...prev,

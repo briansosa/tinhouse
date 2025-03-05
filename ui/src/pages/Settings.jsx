@@ -7,6 +7,8 @@ import FeaturesFilter from '../components/Filters/FeaturesFilter';
 import SizeRangeFilter from '../components/Filters/SizeRangeFilter';
 import RoomsFilter from '../components/Filters/RoomsFilter';
 import AntiquityFilter from '../components/Filters/AntiquityFilter';
+import PropertyTypeFilter from '../components/Filters/PropertyTypeFilter';
+import { getPropertyTypes } from '../services/api';
 
 export default function Settings({ setShowNavBar }) {
     const navigate = useNavigate();
@@ -50,16 +52,31 @@ export default function Settings({ setShowNavBar }) {
     const [showAntiquityDrawer, setShowAntiquityDrawer] = useState(false);
     const [showThemeDrawer, setShowThemeDrawer] = useState(false);
 
+    const [propertyTypeLabels, setPropertyTypeLabels] = useState({});
+
     useEffect(() => {
         setShowNavBar(false);
     }, [setShowNavBar]);
 
-    const propertyTypes = [
-        { id: 'all', label: 'Todas' },
-        { id: 'house', label: 'Casa' },
-        { id: 'apartment', label: 'Departamento' },
-        { id: 'ph', label: 'PH' }
-    ];
+    // Cargar tipos de propiedad para mostrar etiquetas correctas
+    useEffect(() => {
+        const fetchPropertyTypes = async () => {
+            try {
+                const response = await getPropertyTypes();
+                if (response.data && response.data.length > 0) {
+                    const typeMap = {};
+                    response.data.forEach(type => {
+                        typeMap[type.id] = type.name;
+                    });
+                    setPropertyTypeLabels(typeMap);
+                }
+            } catch (error) {
+                console.error('Error al cargar tipos de propiedad:', error);
+            }
+        };
+        
+        fetchPropertyTypes();
+    }, []);
 
     const themeOptions = [
         { id: 'light', label: 'Claro' },
@@ -67,7 +84,6 @@ export default function Settings({ setShowNavBar }) {
         { id: 'auto', label: 'Automático (según hora)' }
     ];
 
-    const selectedPropertyType = propertyTypes.find(type => type.id === filters.propertyType);
     const selectedTheme = themeOptions.find(theme => theme.id === themeMode);
 
     const formatPrice = (price) => {
@@ -162,7 +178,10 @@ export default function Settings({ setShowNavBar }) {
                 >
                     <span className="text-gray-300 dark:text-gray-300">Tipo de propiedad</span>
                     <div className="flex items-center">
-                        <span className="text-gray-400 dark:text-gray-400 mr-2">{selectedPropertyType?.label || 'Todas'}</span>
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">
+                            {filters.propertyType === 'all' ? 'Todas' : 
+                             propertyTypeLabels[filters.propertyType] || filters.propertyType}
+                        </span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -300,12 +319,15 @@ export default function Settings({ setShowNavBar }) {
                 isOpen={showPropertyTypeDrawer}
                 onClose={() => setShowPropertyTypeDrawer(false)}
                 title="TIPO DE PROPIEDAD"
-                options={propertyTypes}
-                selectedValue={filters.propertyType}
-                onSelect={(value) => {
-                    setFilters(prev => ({ ...prev, propertyType: value }));
-                    setShowPropertyTypeDrawer(false);
-                }}
+                customContent={
+                    <PropertyTypeFilter
+                        initialValue={filters.propertyType}
+                        onChange={(value) => setFilters(prev => ({
+                            ...prev,
+                            propertyType: value
+                        }))}
+                    />
+                }
             />
 
             <FilterDrawer 

@@ -8,20 +8,32 @@ const api = axios.create({
   },
 });
 
-export const getUnratedProperties = (filters = null) => {
-  if (filters) {
-    console.log("filters", filters);
-    return api.get('/properties/unrated', { params: convertFilters(filters) });
+export const getUnratedProperties = (filters = null, cancelToken = null) => {
+  const config = {};
+  
+  if (cancelToken) {
+    config.cancelToken = cancelToken;
   }
-  return api.get('/properties/unrated');
+  
+  if (filters) {
+    config.params = convertFilters(filters);
+    return api.get('/properties/unrated', config);
+  }
+  return api.get('/properties/unrated', config);
 };
 
-export const getLikedProperties = (filters = null) => {
-  if (filters) {
-    console.log("filters", filters);
-    return api.get('/properties/liked', { params: convertFilters(filters) });
+export const getLikedProperties = (filters = null, cancelToken = null) => {
+  const config = {};
+  
+  if (cancelToken) {
+    config.cancelToken = cancelToken;
   }
-  return api.get('/properties/liked');
+  
+  if (filters) {
+    config.params = convertFilters(filters);
+    return api.get('/properties/liked', config);
+  }
+  return api.get('/properties/liked', config);
 };
 
 export const rateProperty = (id, rating) => api.put(`/properties/${id}/rate`, { rating });
@@ -33,12 +45,18 @@ export const dislikeProperty = (id) => api.put(`/properties/${id}/rate`, { ratin
 export const togglePropertyFavorite = (id, isFavorite) => api.put(`/properties/${id}/favorite`, { is_favorite: isFavorite });
 
 // Función para obtener propiedades favoritas
-export const getFavoriteProperties = (filters = null) => {
-  if (filters) {
-    console.log("filters", filters);
-    return api.get('/properties/favorites', { params: convertFilters(filters) });
+export const getFavoriteProperties = (filters = null, cancelToken = null) => {
+  const config = {};
+  
+  if (cancelToken) {
+    config.cancelToken = cancelToken;
   }
-  return api.get('/properties/favorites');
+  
+  if (filters) {
+    config.params = convertFilters(filters);
+    return api.get('/properties/favorites', config);
+  }
+  return api.get('/properties/favorites', config);
 };
 
 // Métodos para manejar notas de propiedades
@@ -50,21 +68,24 @@ export const deletePropertyNote = (noteId) => api.delete(`/properties/notes/${no
 
 // Función para convertir los filtros del frontend al formato del backend
 const convertFilters = (filters) => {
+  if (!filters) return {};
+  
   const backendFilters = {};
 
-  if (filters.propertyType) {
-    backendFilters.property_type = filters.propertyType;
+  if (filters.propertyType && filters.propertyType !== 'all') {
+    backendFilters.property_type_id = filters.propertyType;
   }
 
-  if (filters.locations) {
-    backendFilters.locations = filters.locations;
+  if (filters.locations && filters.locations.length > 0) {
+    backendFilters.locations = filters.locations.join(',');
   }
 
-  if (filters.features) {
-    backendFilters.features = filters.features;
+  if (filters.features && filters.features.length > 0) {
+    backendFilters.features = filters.features.join(',');
   }
 
-  if (filters.priceRange?.currency) {
+  // Solo enviar la moneda si hay filtros de precio
+  if ((filters.priceRange?.min || filters.priceRange?.max) && filters.priceRange?.currency) {
     backendFilters.currency = filters.priceRange.currency;
   }
 
@@ -104,6 +125,21 @@ const convertFilters = (filters) => {
   }
 
   return backendFilters;
+};
+
+// Función para obtener todas las características disponibles
+export const getAvailableFeatures = () => api.get('/features');
+
+// Obtener todos los tipos de propiedad disponibles
+export const getPropertyTypes = () => {
+  return api.get('/property-types')
+    .then(response => {
+      return response;
+    })
+    .catch(error => {
+      console.error("Error en getPropertyTypes:", error);
+      throw error;
+    });
 };
 
 export default api;
