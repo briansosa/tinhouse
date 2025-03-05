@@ -504,16 +504,37 @@ func (db *DB) SavePropertyFeaturesWithTx(tx *sql.Tx, propertyID int64, features 
 			err := tx.QueryRow(query, name, category).Scan(&featureID)
 
 			if err == sql.ErrNoRows {
-				// La característica no existe, la creamos
-				insertQuery := `INSERT INTO property_features (name, category) VALUES (?, ?)`
+				// La característica no existe, la creamos usando INSERT OR IGNORE para evitar errores de duplicados
+				insertQuery := `INSERT OR IGNORE INTO property_features (name, category) VALUES (?, ?)`
 				result, err := tx.Exec(insertQuery, name, category)
 				if err != nil {
-					return fmt.Errorf("error creando característica %s (%s): %v", name, category, err)
-				}
+					// Si hay un error que no sea de duplicado, lo reportamos
+					if !strings.Contains(err.Error(), "UNIQUE constraint failed") {
+						return fmt.Errorf("error creando característica %s (%s): %v", name, category, err)
+					}
 
-				featureID, err = result.LastInsertId()
-				if err != nil {
-					return fmt.Errorf("error obteniendo ID de característica: %v", err)
+					// Si fue un error de duplicado, intentamos obtener el ID existente
+					err = tx.QueryRow(query, name, category).Scan(&featureID)
+					if err != nil {
+						return fmt.Errorf("error recuperando ID después de duplicado para %s (%s): %v", name, category, err)
+					}
+				} else {
+					// Si no hubo error, obtenemos el ID de la inserción
+					newID, err := result.LastInsertId()
+					if err != nil {
+						return fmt.Errorf("error obteniendo ID de característica: %v", err)
+					}
+
+					// Solo asignamos el nuevo ID si realmente se insertó una fila
+					if newID > 0 {
+						featureID = newID
+					} else {
+						// Si no se insertó (porque ya existía), obtenemos el ID existente
+						err = tx.QueryRow(query, name, category).Scan(&featureID)
+						if err != nil {
+							return fmt.Errorf("error recuperando ID existente para %s (%s): %v", name, category, err)
+						}
+					}
 				}
 			} else if err != nil {
 				return fmt.Errorf("error buscando característica %s (%s): %v", name, category, err)

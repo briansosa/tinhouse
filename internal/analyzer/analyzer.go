@@ -262,7 +262,7 @@ func normalizarTipoPropiedad(tipo string) string {
 }
 
 // UpdateProperties actualiza los detalles de las propiedades en la base de datos
-func UpdateProperties(database *db.DB, testMode bool) error {
+func UpdateProperties(database *db.DB, testMode bool, inmobiliariaFilter string) error {
 	ctx := context.Background()
 
 	// Obtener propiedades sin detalles
@@ -272,6 +272,30 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 	}
 
 	fmt.Printf("Encontradas %d propiedades sin detalles\n", len(propiedades))
+
+	// Filtrar por inmobiliaria si se especificó
+	if inmobiliariaFilter != "" {
+		var propiedadesFiltradas []db.Propiedad
+		for _, prop := range propiedades {
+			// Obtener información de la inmobiliaria
+			inmobiliaria, err := database.GetInmobiliariaByID(prop.InmobiliariaID)
+			if err != nil {
+				log.Printf("Error obteniendo inmobiliaria %d: %v\n", prop.InmobiliariaID, err)
+				continue
+			}
+
+			if strings.Contains(strings.ToLower(inmobiliaria.Nombre), strings.ToLower(inmobiliariaFilter)) {
+				propiedadesFiltradas = append(propiedadesFiltradas, prop)
+			}
+		}
+
+		if len(propiedadesFiltradas) == 0 {
+			return fmt.Errorf("no se encontraron propiedades para la inmobiliaria '%s'", inmobiliariaFilter)
+		}
+
+		propiedades = propiedadesFiltradas
+		fmt.Printf("Filtrando por inmobiliaria: %s (encontradas %d propiedades)\n", inmobiliariaFilter, len(propiedades))
+	}
 
 	var actualizadas, fallidas, noDisponibles int
 
@@ -395,23 +419,42 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 		}
 
 		prop.Status = "completed"
-		actualizadas++
 
-		if err := database.UpdatePropiedadDetalles(&prop); err != nil {
-			log.Printf("Error actualizando propiedad: %v\n", err)
-			fallidas++
-			continue
+		// Implementar reintentos con backoff exponencial para manejar bloqueos de base de datos
+		maxRetries := 5
+		baseDelay := 1 * time.Second
+		for retry := 0; retry < maxRetries; retry++ {
+			err := database.UpdatePropiedadDetalles(&prop)
+			if err == nil {
+				// Actualización exitosa
+				actualizadas++
+				fmt.Printf("✓ Propiedad %s actualizada exitosamente\n", prop.Codigo)
+				break
+			} else if strings.Contains(err.Error(), "database is locked") {
+				// Si la base de datos está bloqueada, esperamos y reintentamos
+				delay := baseDelay * time.Duration(1<<uint(retry)) // Backoff exponencial: 1s, 2s, 4s, 8s, 16s
+				log.Printf("⚠️ Base de datos bloqueada, reintentando en %v (intento %d/%d)...\n", delay, retry+1, maxRetries)
+				time.Sleep(delay)
+
+				// Si es el último intento y sigue fallando
+				if retry == maxRetries-1 {
+					log.Printf("❌ Error persistente actualizando propiedad después de %d intentos: %v\n", maxRetries, err)
+					fallidas++
+				}
+			} else {
+				// Otro tipo de error
+				log.Printf("❌ Error actualizando propiedad: %v\n", err)
+				fallidas++
+				break
+			}
 		}
-
-		// Log para confirmar la actualización
-		fmt.Printf("✓ Propiedad %s actualizada exitosamente\n", prop.Codigo)
 
 		indexTest++
 		if testMode && indexTest == 5 {
 			break
 		}
 
-		// Delay fijo entre requests
+		// Delay fijo entre requests para evitar sobrecargar la base de datos
 		time.Sleep(3 * time.Second)
 	}
 

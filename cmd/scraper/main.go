@@ -63,7 +63,7 @@ func runProcess(database *db.DB, flags *configuration.Flags) error {
 		}
 
 	case configuration.ModeUpdateProperties:
-		if err := updateProperties(database, flags.TestMode); err != nil {
+		if err := updateProperties(database, flags.TestMode, flags.Inmobiliaria); err != nil {
 			return fmt.Errorf("error en actualización de propiedades: %w", err)
 		}
 	default:
@@ -87,6 +87,6 @@ func searchProperties(database *db.DB, testMode bool, inmobiliaria string) error
 	return analyzer.SearchProperties(database, testMode, inmobiliaria)
 }
 
-func updateProperties(database *db.DB, testMode bool) error {
-	return analyzer.UpdateProperties(database, testMode)
+func updateProperties(database *db.DB, testMode bool, inmobiliaria string) error {
+	return analyzer.UpdateProperties(database, testMode, inmobiliaria)
 }
