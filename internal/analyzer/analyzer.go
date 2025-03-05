@@ -177,6 +177,7 @@ func SearchProperties(database *db.DB, testMode bool) error {
 				Direccion:      prop.Address,
 				URL:            prop.URL,
 				ImagenURL:      prop.ImageURL,
+				Status:         "pending",
 			}
 
 			// Ya no vinculamos con búsqueda
@@ -272,29 +273,31 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 		// Log para verificar los detalles obtenidos
 		fmt.Printf("   Detalles obtenidos: %+v\n", details)
 
-		// Actualizar propiedad con los detalles
-		fmt.Printf("   Actualizando propiedad %s con detalles...\n", prop.Codigo)
-		prop.TipoPropiedad = ptr(details.TipoPropiedad)
-		prop.Ubicacion = ptr(details.Ubicacion)
-		prop.Dormitorios = ptr(details.Dormitorios)
-		prop.Banios = ptr(details.Banios)
-		prop.Antiguedad = ptr(details.Antiguedad)
-		prop.SuperficieCubierta = ptr(details.SuperficieCubierta)
-		prop.SuperficieTotal = ptr(details.SuperficieTotal)
-		prop.SuperficieTerreno = ptr(details.SuperficieTerreno)
-		prop.Frente = ptr(details.Frente)
-		prop.Fondo = ptr(details.Fondo)
-		prop.Ambientes = ptr(details.Ambientes)
-		prop.Plantas = ptr(details.Plantas)
-		prop.Cocheras = ptr(details.Cocheras)
-		prop.Situacion = ptr(details.Situacion)
-		prop.Expensas = ptr(details.Expensas)
-		prop.Descripcion = ptr(details.Descripcion)
-		prop.Imagenes = ptr(details.Images)
+		// Actualizar la propiedad con los detalles
+		prop.TipoPropiedad = &details.TipoPropiedad
+		prop.Ubicacion = &details.Ubicacion
+		prop.Dormitorios = &details.Dormitorios
+		prop.Banios = &details.Banios
+		prop.Antiguedad = &details.Antiguedad
+		prop.SuperficieCubierta = &details.SuperficieCubierta
+		prop.SuperficieTotal = &details.SuperficieTotal
+		prop.SuperficieTerreno = &details.SuperficieTerreno
+		prop.Frente = &details.Frente
+		prop.Fondo = &details.Fondo
+		prop.Ambientes = &details.Ambientes
+		prop.Plantas = &details.Plantas
+		prop.Cocheras = &details.Cocheras
+		prop.Situacion = &details.Situacion
+		prop.Expensas = &details.Expensas
+		prop.Descripcion = &details.Descripcion
+		prop.Imagenes = &details.Images
+		prop.Operacion = &details.Operacion
+		prop.Condicion = &details.Condicion
+		prop.Orientacion = &details.Orientacion
+		prop.Disposicion = &details.Disposicion
 		prop.Status = "completed"
 		actualizadas++
 
-		prop.FechaScraping = time.Now()
 		if err := database.UpdatePropiedadDetalles(&prop); err != nil {
 			log.Printf("Error actualizando propiedad: %v\n", err)
 			fallidas++

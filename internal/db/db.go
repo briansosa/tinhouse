@@ -68,12 +68,12 @@ func (db *DB) CreateBusqueda(b *Busqueda) error {
 func (db *DB) CreatePropiedad(p *Propiedad) error {
 	query := `
         INSERT INTO propiedades (
-            inmobiliaria_id, codigo, titulo, precio, moneda, direccion, url, imagen_url, fecha_scraping,
+            inmobiliaria_id, codigo, titulo, precio, moneda, direccion, url, imagen_url,
             tipo_propiedad, ubicacion, dormitorios, banios, antiguedad, 
             superficie_cubierta, superficie_total, frente, fondo, ambientes,
             expensas, descripcion, status
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(codigo) DO UPDATE SET
             titulo = excluded.titulo,
             precio = excluded.precio,
@@ -81,7 +81,6 @@ func (db *DB) CreatePropiedad(p *Propiedad) error {
             direccion = excluded.direccion,
             url = excluded.url,
             imagen_url = excluded.imagen_url,
-            fecha_scraping = excluded.fecha_scraping,
             tipo_propiedad = excluded.tipo_propiedad,
             ubicacion = excluded.ubicacion,
             dormitorios = excluded.dormitorios,
@@ -99,7 +98,7 @@ func (db *DB) CreatePropiedad(p *Propiedad) error {
         RETURNING id, created_at, updated_at`
 
 	return db.QueryRow(query,
-		p.InmobiliariaID, p.Codigo, p.Titulo, p.Precio, p.Moneda, p.Direccion, p.URL, p.ImagenURL, p.FechaScraping,
+		p.InmobiliariaID, p.Codigo, p.Titulo, p.Precio, p.Moneda, p.Direccion, p.URL, p.ImagenURL,
 		p.TipoPropiedad, p.Ubicacion, p.Dormitorios, p.Banios, p.Antiguedad,
 		p.SuperficieCubierta, p.SuperficieTotal, p.Frente, p.Fondo, p.Ambientes,
 		p.Expensas, p.Descripcion, p.Status,
@@ -345,7 +344,7 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 		SELECT 
 			id, inmobiliaria_id, codigo, titulo, precio, direccion, url, imagen_url,
 			NULLIF(imagenes, '') as imagenes,
-			fecha_scraping, created_at, updated_at,
+			created_at, updated_at,
 			tipo_propiedad, ubicacion, 
 			NULLIF(dormitorios, '') as dormitorios,
 			NULLIF(banios, '') as banios,
@@ -360,7 +359,7 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 			NULLIF(cocheras, '') as cocheras,
 			situacion,
 			NULLIF(expensas, '') as expensas,
-			descripcion, status
+			descripcion, status, operacion, condicion, orientacion, disposicion
 		FROM propiedades
 		WHERE status = 'pending'
 		ORDER BY created_at DESC`
@@ -379,11 +378,12 @@ func (db *DB) GetPropiedadesSinDetalles() ([]Propiedad, error) {
 		err := rows.Scan(
 			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
 			&p.URL, &p.ImagenURL, &imagenesJSON, // Usamos imagenesJSON en lugar de p.Imagenes directamente
-			&p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
+			&p.CreatedAt, &p.UpdatedAt,
 			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
 			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
 			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
-			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status,
+			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status, &p.Operacion,
+			&p.Condicion, &p.Orientacion, &p.Disposicion,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
@@ -439,8 +439,11 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 			expensas = ?,
 			descripcion = ?,
 			status = ?,
-			updated_at = CURRENT_TIMESTAMP,
-			fecha_scraping = ?
+			operacion = ?,
+			condicion = ?,
+			orientacion = ?,
+			disposicion = ?,
+			updated_at = CURRENT_TIMESTAMP
 		WHERE id = ?
 		RETURNING created_at, updated_at`
 
@@ -463,7 +466,10 @@ func (db *DB) UpdatePropiedadDetalles(p *Propiedad) error {
 		p.Expensas,
 		p.Descripcion,
 		p.Status,
-		p.FechaScraping,
+		p.Operacion,
+		p.Condicion,
+		p.Orientacion,
+		p.Disposicion,
 		p.ID,
 	).Scan(&p.CreatedAt, &p.UpdatedAt)
 
@@ -497,11 +503,12 @@ func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) 
 	baseQuery := `
 		SELECT 
 			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
-			p.url, p.imagen_url, p.imagenes, p.fecha_scraping, p.created_at, p.updated_at,
+			p.url, p.imagen_url, p.imagenes, p.created_at, p.updated_at,
 			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
 			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
 			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
-			p.situacion, p.expensas, p.descripcion, p.status
+			p.situacion, p.expensas, p.descripcion, p.status, p.operacion,
+			p.condicion, p.orientacion, p.disposicion
 		FROM propiedades p
 		WHERE NOT EXISTS (
 			SELECT 1 
@@ -532,11 +539,12 @@ func (db *DB) GetLikedProperties(filter *PropertyFilter) ([]Propiedad, error) {
 	baseQuery := `
 		SELECT 
 			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
-			p.url, p.imagen_url, p.imagenes, p.fecha_scraping, p.created_at, p.updated_at,
+			p.url, p.imagen_url, p.imagenes, p.created_at, p.updated_at,
 			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
 			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
 			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
-			p.situacion, p.expensas, p.descripcion, p.status
+			p.situacion, p.expensas, p.descripcion, p.status, p.operacion,
+			p.condicion, p.orientacion, p.disposicion
 		FROM propiedades p
 		INNER JOIN property_ratings r ON r.property_id = p.id
 		WHERE r.rating = 'like'`
@@ -568,11 +576,13 @@ func scanPropiedades(rows *sql.Rows) ([]Propiedad, error) {
 
 		err := rows.Scan(
 			&p.ID, &p.InmobiliariaID, &p.Codigo, &p.Titulo, &p.Precio, &p.Direccion,
-			&p.URL, &p.ImagenURL, &imagenesJSON, &p.FechaScraping, &p.CreatedAt, &p.UpdatedAt,
+			&p.URL, &p.ImagenURL, &imagenesJSON, // Usamos imagenesJSON en lugar de p.Imagenes directamente
+			&p.CreatedAt, &p.UpdatedAt,
 			&p.TipoPropiedad, &p.Ubicacion, &p.Dormitorios, &p.Banios, &p.Antiguedad,
 			&p.SuperficieCubierta, &p.SuperficieTotal, &p.SuperficieTerreno,
 			&p.Frente, &p.Fondo, &p.Ambientes, &p.Plantas, &p.Cocheras,
-			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status,
+			&p.Situacion, &p.Expensas, &p.Descripcion, &p.Status, &p.Operacion,
+			&p.Condicion, &p.Orientacion, &p.Disposicion,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error escaneando propiedad: %v", err)
@@ -883,11 +893,12 @@ func (db *DB) GetFavoriteProperties(filter *PropertyFilter) ([]Propiedad, error)
 	baseQuery := `
 		SELECT 
 			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
-			p.url, p.imagen_url, p.imagenes, p.fecha_scraping, p.created_at, p.updated_at,
+			p.url, p.imagen_url, p.imagenes, p.created_at, p.updated_at,
 			p.tipo_propiedad, p.ubicacion, p.dormitorios, p.banios, p.antiguedad,
 			p.superficie_cubierta, p.superficie_total, p.superficie_terreno,
 			p.frente, p.fondo, p.ambientes, p.plantas, p.cocheras,
-			p.situacion, p.expensas, p.descripcion, p.status
+			p.situacion, p.expensas, p.descripcion, p.status, p.operacion,
+			p.condicion, p.orientacion, p.disposicion
 		FROM propiedades p
 		INNER JOIN property_ratings r ON r.property_id = p.id
 		WHERE r.rating = 'like' AND r.is_favorite = 1`

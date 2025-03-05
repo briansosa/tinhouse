@@ -367,7 +367,7 @@ func (h *Handler) toPropertyResponse(p *db.Propiedad) PropertyResponse {
 		Images:       images,
 		URL:          p.URL,
 		Description:  getString(p.Descripcion),
-		LastUpdated:  p.FechaScraping,
+		LastUpdated:  p.UpdatedAt,
 		CreatedAt:    p.CreatedAt,
 		Details: Details{
 			Bedrooms:  p.Dormitorios,

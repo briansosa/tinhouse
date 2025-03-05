@@ -33,6 +33,7 @@ type PropertyFilter struct {
 type PropertyDetails struct {
 	TipoPropiedad      string
 	Ubicacion          string
+	Operacion          string // Tipo de operación: venta, alquiler, etc.
 	Dormitorios        int
 	Banios             int
 	Antiguedad         string
@@ -48,4 +49,7 @@ type PropertyDetails struct {
 	Expensas           float64
 	Descripcion        string
 	Images             []string
+	Condicion          string
+	Orientacion        string
+	Disposicion        string
 }

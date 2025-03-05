@@ -189,6 +189,46 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 				const tipoPropiedad = document.querySelector('#ficha_detalle_cuerpo .ficha_detalle_item:first-child')?.textContent.split('Tipo de Propiedad')[1]?.trim() || '';
 				const ubicacion = document.querySelector('#ficha_detalle_cuerpo .ficha_detalle_item:nth-child(2)')?.textContent.split('Ubicación')[1]?.trim() || '';
 				
+				// Extraer tipo de operación
+				let operacion = '';
+				
+				// Método 1: Buscar en el título de la página
+				const pageTitle = document.title || '';
+				if (pageTitle.toLowerCase().includes('venta')) {
+					operacion = 'Venta';
+				} else if (pageTitle.toLowerCase().includes('alquiler temp')) {
+					operacion = 'Alquiler Temporario';
+				} else if (pageTitle.toLowerCase().includes('alquiler')) {
+					operacion = 'Alquiler';
+				}
+				
+				// Método 2: Buscar en la URL
+				if (!operacion) {
+					const currentUrl = window.location.href;
+					if (currentUrl.toLowerCase().includes('venta')) {
+						operacion = 'Venta';
+					} else if (currentUrl.toLowerCase().includes('alquiler-temp')) {
+						operacion = 'Alquiler Temporario';
+					} else if (currentUrl.toLowerCase().includes('alquiler')) {
+						operacion = 'Alquiler';
+					}
+				}
+				
+				// Método 3: Buscar en el contenido de la página
+				if (!operacion) {
+					const breadcrumbs = document.querySelector('.breadcrumb');
+					if (breadcrumbs) {
+						const breadcrumbText = breadcrumbs.textContent.toLowerCase();
+						if (breadcrumbText.includes('venta')) {
+							operacion = 'Venta';
+						} else if (breadcrumbText.includes('alquiler temp')) {
+							operacion = 'Alquiler Temporario';
+						} else if (breadcrumbText.includes('alquiler')) {
+							operacion = 'Alquiler';
+						}
+					}
+				}
+				
 				// Extraer información básica
 				const dormitorios = extractNumber(findValue('#lista_informacion_basica', 'Dormitorios'));
 				const banios = extractNumber(findValue('#lista_informacion_basica', 'Baños'));
@@ -198,6 +238,9 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 				const cocheras = extractNumber(findValue('#lista_informacion_basica', 'Cocheras'));
 				const situacion = findValue('#lista_informacion_basica', 'Situación');
 				const expensas = extractNumber(findValue('#lista_informacion_basica', 'Expensas'));
+				const condicion = findValue('#lista_informacion_basica', 'Condición') || findDetailValue('Condición');
+				const orientacion = findValue('#lista_informacion_basica', 'Orientación') || findDetailValue('Orientación');
+				const disposicion = findValue('#lista_informacion_basica', 'Disposición') || findDetailValue('Disposición');
 
 				// Extraer superficies
 				const superficieTerreno = extractM2(findValue('#lista_superficies', 'Terreno'));
@@ -216,7 +259,7 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 				console.log('Imágenes extraídas:', images); // Log para verificar imágenes
 
 				console.log('Datos extraídos:', {
-					tipoPropiedad, ubicacion, dormitorios, banios, antiguedad,
+					tipoPropiedad, ubicacion, operacion, dormitorios, banios, antiguedad,
 					superficieCubierta, superficieTotal, superficieTerreno,
 					frente, fondo, ambientes, plantas, cocheras, situacion,
 					expensas, descripcion, images
@@ -225,6 +268,7 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 				return {
 					tipoPropiedad,
 					ubicacion,
+					operacion,
 					dormitorios,
 					banios,
 					antiguedad,
@@ -239,7 +283,10 @@ func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.P
 					situacion,
 					expensas,
 					descripcion,
-					images
+					images,
+					condicion,
+					orientacion,
+					disposicion
 				};
 			})()
 		`, &details),

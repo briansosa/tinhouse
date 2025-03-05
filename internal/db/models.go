@@ -40,7 +40,6 @@ type Propiedad struct {
 	URL            string    `db:"url"`
 	ImagenURL      string    `db:"imagen_url"`
 	Imagenes       *[]string `db:"imagenes"`
-	FechaScraping  time.Time `db:"fecha_scraping"`
 	CreatedAt      time.Time `db:"created_at"`
 	UpdatedAt      time.Time `db:"updated_at"`
 
@@ -62,6 +61,10 @@ type Propiedad struct {
 	Expensas           *float64 `db:"expensas"`
 	Descripcion        *string  `db:"descripcion"`
 	Status             string   `db:"status"`
+	Operacion          *string  `db:"operacion"`
+	Condicion          *string  `db:"condicion"`
+	Orientacion        *string  `db:"orientacion"`
+	Disposicion        *string  `db:"disposicion"`
 
 	// Campo virtual para indicar si es favorita
 	IsFavorite bool `db:"-"`

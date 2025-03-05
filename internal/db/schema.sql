@@ -35,7 +35,6 @@ CREATE TABLE IF NOT EXISTS propiedades (
     url TEXT,
     imagen_url TEXT,
     imagenes TEXT,  -- Nueva columna para array de imágenes
-    fecha_scraping TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     tipo_propiedad TEXT,
@@ -55,6 +54,10 @@ CREATE TABLE IF NOT EXISTS propiedades (
     expensas FLOAT,
     descripcion TEXT,
     status TEXT DEFAULT 'pending',
+    operacion TEXT,
+    condicion TEXT,
+    orientacion TEXT,
+    disposicion TEXT,
     FOREIGN KEY (inmobiliaria_id) REFERENCES inmobiliarias(id)
 );
 
