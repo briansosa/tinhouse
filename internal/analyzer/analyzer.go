@@ -7,9 +7,11 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/findhouse/internal/db"
+	"github.com/findhouse/internal/models"
 	"github.com/findhouse/internal/scraper"
 )
 
@@ -297,19 +299,128 @@ func UpdateProperties(database *db.DB, testMode bool, inmobiliariaFilter string)
 		fmt.Printf("Filtrando por inmobiliaria: %s (encontradas %d propiedades)\n", inmobiliariaFilter, len(propiedades))
 	}
 
+	// Definir el número de trabajadores concurrentes
+	// Ajusta este valor según la capacidad de tu sistema
+	numWorkers := 15
+	if testMode {
+		numWorkers = 2 // Menos trabajadores en modo de prueba
+	}
+
+	// Limitar el número de propiedades en modo de prueba
+	if testMode && len(propiedades) > 5 {
+		propiedades = propiedades[:5]
+	}
+
+	// Crear un canal para las propiedades a procesar
+	propiedadesChan := make(chan db.Propiedad, len(propiedades))
+
+	// Crear un canal para los resultados de extracción (no de escritura)
+	extraccionesChan := make(chan struct {
+		propiedad    db.Propiedad
+		details      *models.PropertyDetails
+		exito        bool
+		noDisponible bool
+	}, len(propiedades))
+
+	// Crear un canal para los resultados finales
+	resultadosChan := make(chan struct {
+		exito        bool
+		noDisponible bool
+		propCodigo   string
+	}, len(propiedades))
+
+	// Crear un WaitGroup para esperar a que todos los trabajadores terminen
+	var wg sync.WaitGroup
+
+	// Iniciar los trabajadores de extracción
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			extraerPropiedades(ctx, database, propiedadesChan, extraccionesChan, workerID)
+		}(i)
+	}
+
+	// Iniciar el trabajador de escritura (solo uno para evitar bloqueos)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		procesarEscrituras(database, extraccionesChan, resultadosChan)
+	}()
+
+	// Enviar las propiedades al canal
+	for _, prop := range propiedades {
+		propiedadesChan <- prop
+	}
+	close(propiedadesChan) // Cerrar el canal cuando todas las propiedades han sido enviadas
+
+	// Crear un canal para recopilar los resultados
+	doneChan := make(chan struct{})
+
+	// Contadores para estadísticas
 	var actualizadas, fallidas, noDisponibles int
 
-	var indexTest int
-	for _, prop := range propiedades {
-		fmt.Printf("\nActualizando propiedad %s\n", prop.Codigo)
+	// Goroutine para recopilar resultados
+	go func() {
+		for resultado := range resultadosChan {
+			if resultado.noDisponible {
+				noDisponibles++
+				fmt.Printf("⚠️ Propiedad %s no disponible\n", resultado.propCodigo)
+			} else if resultado.exito {
+				actualizadas++
+				fmt.Printf("✓ Propiedad %s actualizada exitosamente\n", resultado.propCodigo)
+			} else {
+				fallidas++
+				fmt.Printf("❌ Error actualizando propiedad %s\n", resultado.propCodigo)
+			}
+		}
+		doneChan <- struct{}{}
+	}()
+
+	// Esperar a que todos los trabajadores terminen
+	wg.Wait()
+	close(extraccionesChan) // Cerrar el canal de extracciones
+	close(resultadosChan)   // Cerrar el canal de resultados
+	<-doneChan              // Esperar a que se procesen todos los resultados
+
+	fmt.Printf("\nResumen:\n"+
+		"- Propiedades actualizadas: %d\n"+
+		"- Propiedades fallidas: %d\n"+
+		"- Propiedades no disponibles: %d\n",
+		actualizadas, fallidas, noDisponibles)
+
+	return nil
+}
+
+// extraerPropiedades extrae los detalles de las propiedades sin escribir en la base de datos
+func extraerPropiedades(ctx context.Context, database *db.DB, propiedadesChan <-chan db.Propiedad, extraccionesChan chan<- struct {
+	propiedad    db.Propiedad
+	details      *models.PropertyDetails
+	exito        bool
+	noDisponible bool
+}, workerID int) {
+	for prop := range propiedadesChan {
+		fmt.Printf("\n[Worker %d] Extrayendo propiedad %s\n", workerID, prop.Codigo)
 		fmt.Printf("   URL: %s\n", prop.URL)
 		fmt.Printf("   Inmobiliaria ID: %d\n", prop.InmobiliariaID)
+
+		resultado := struct {
+			propiedad    db.Propiedad
+			details      *models.PropertyDetails
+			exito        bool
+			noDisponible bool
+		}{
+			propiedad:    prop,
+			details:      nil,
+			exito:        false,
+			noDisponible: false,
+		}
 
 		// Obtener información de la inmobiliaria
 		inmobiliaria, err := database.GetInmobiliariaByID(prop.InmobiliariaID)
 		if err != nil {
-			log.Printf("❌ Error obteniendo inmobiliaria %d: %v\n", prop.InmobiliariaID, err)
-			fallidas++
+			log.Printf("[Worker %d] ❌ Error obteniendo inmobiliaria %d: %v\n", workerID, prop.InmobiliariaID, err)
+			extraccionesChan <- resultado
 			continue
 		}
 
@@ -318,19 +429,20 @@ func UpdateProperties(database *db.DB, testMode bool, inmobiliariaFilter string)
 		// Obtener el scraper adecuado para el sistema de la inmobiliaria
 		propertyScraper := scraper.NewScraper(inmobiliaria.Sistema, inmobiliaria.URL)
 		if propertyScraper == nil {
-			log.Printf("Sistema no soportado: %s\n", inmobiliaria.Sistema)
-			fallidas++
+			log.Printf("[Worker %d] Sistema no soportado: %s\n", workerID, inmobiliaria.Sistema)
+			extraccionesChan <- resultado
 			continue
 		}
 
 		// Obtener detalles usando el contexto con timeout
 		propCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
+		log.Printf("[Worker %d] 🔍 Intentando obtener detalles de: %s\n", workerID, prop.URL)
 		details, err := propertyScraper.GetPropertyDetails(propCtx, prop.URL)
 		cancel() // Liberamos recursos
 
 		if err != nil {
 			if strings.Contains(err.Error(), "context deadline exceeded") {
-				log.Printf("⌛ Timeout al procesar propiedad: %s, reintentando...\n", prop.URL)
+				log.Printf("[Worker %d] ⌛ Timeout al procesar propiedad: %s, reintentando...\n", workerID, prop.URL)
 				// Reintento con más tiempo
 				propCtx, cancel = context.WithTimeout(ctx, 5*time.Minute)
 				details, err = propertyScraper.GetPropertyDetails(propCtx, prop.URL)
@@ -338,25 +450,70 @@ func UpdateProperties(database *db.DB, testMode bool, inmobiliariaFilter string)
 			}
 			if err != nil {
 				// Manejo de error final
-				log.Printf("❌ Error final al procesar propiedad: %v\n", err)
-				fallidas++
+				log.Printf("[Worker %d] ❌ Error final al procesar propiedad: %v\n", workerID, err)
+				extraccionesChan <- resultado
 				continue
 			}
 		}
 
 		// Verificar si la propiedad ya no está disponible
 		if details.Descripcion == "Propiedad no disponible" {
-			log.Printf("⚠️ Propiedad no disponible: %s\n", prop.URL)
-			noDisponibles++
+			log.Printf("[Worker %d] ⚠️ Propiedad no disponible: %s\n", workerID, prop.URL)
+			resultado.noDisponible = true
+			extraccionesChan <- resultado
 			continue
 		}
+
+		log.Printf("[Worker %d] ✓ Extracción completada: %+v\n", workerID, details)
+
+		// Si llegamos aquí, la extracción fue exitosa
+		resultado.details = details
+		resultado.exito = true
+		extraccionesChan <- resultado
+
+		// Delay fijo entre extracciones para evitar sobrecargar el sitio web
+		time.Sleep(1 * time.Second)
+	}
+}
+
+// procesarEscrituras procesa las escrituras en la base de datos de forma secuencial
+func procesarEscrituras(database *db.DB, extraccionesChan <-chan struct {
+	propiedad    db.Propiedad
+	details      *models.PropertyDetails
+	exito        bool
+	noDisponible bool
+}, resultadosChan chan<- struct {
+	exito        bool
+	noDisponible bool
+	propCodigo   string
+}) {
+	for extraccion := range extraccionesChan {
+		resultado := struct {
+			exito        bool
+			noDisponible bool
+			propCodigo   string
+		}{
+			exito:        false,
+			noDisponible: extraccion.noDisponible,
+			propCodigo:   extraccion.propiedad.Codigo,
+		}
+
+		// Si la propiedad no está disponible o hubo un error en la extracción, solo enviamos el resultado
+		if extraccion.noDisponible || !extraccion.exito {
+			resultadosChan <- resultado
+			continue
+		}
+
+		// Procesar los datos extraídos y guardarlos en la base de datos
+		prop := extraccion.propiedad
+		details := extraccion.details
 
 		// Normalizar el tipo de propiedad
 		tipoNormalizado := normalizarTipoPropiedad(details.TipoPropiedad)
 
 		// Obtener el ID del tipo de propiedad
 		var tipoID int64
-		err = database.QueryRow(`
+		err := database.QueryRow(`
 			SELECT id FROM property_types WHERE name = ?
 		`, tipoNormalizado).Scan(&tipoID)
 		if err != nil {
@@ -368,12 +525,12 @@ func UpdateProperties(database *db.DB, testMode bool, inmobiliariaFilter string)
 					INSERT INTO property_types (code, name) VALUES (?, ?)
 				`, code, tipoNormalizado)
 				if err != nil {
-					log.Printf("Error al insertar tipo de propiedad '%s': %v\n", tipoNormalizado, err)
+					log.Printf("[Escritor] Error al insertar tipo de propiedad '%s': %v\n", tipoNormalizado, err)
 				} else {
 					tipoID, _ = result.LastInsertId()
 				}
 			} else {
-				log.Printf("Error al obtener ID para tipo de propiedad '%s': %v\n", tipoNormalizado, err)
+				log.Printf("[Escritor] Error al obtener ID para tipo de propiedad '%s': %v\n", tipoNormalizado, err)
 			}
 		}
 
@@ -420,49 +577,15 @@ func UpdateProperties(database *db.DB, testMode bool, inmobiliariaFilter string)
 
 		prop.Status = "completed"
 
-		// Implementar reintentos con backoff exponencial para manejar bloqueos de base de datos
-		maxRetries := 5
-		baseDelay := 1 * time.Second
-		for retry := 0; retry < maxRetries; retry++ {
-			err := database.UpdatePropiedadDetalles(&prop)
-			if err == nil {
-				// Actualización exitosa
-				actualizadas++
-				fmt.Printf("✓ Propiedad %s actualizada exitosamente\n", prop.Codigo)
-				break
-			} else if strings.Contains(err.Error(), "database is locked") {
-				// Si la base de datos está bloqueada, esperamos y reintentamos
-				delay := baseDelay * time.Duration(1<<uint(retry)) // Backoff exponencial: 1s, 2s, 4s, 8s, 16s
-				log.Printf("⚠️ Base de datos bloqueada, reintentando en %v (intento %d/%d)...\n", delay, retry+1, maxRetries)
-				time.Sleep(delay)
-
-				// Si es el último intento y sigue fallando
-				if retry == maxRetries-1 {
-					log.Printf("❌ Error persistente actualizando propiedad después de %d intentos: %v\n", maxRetries, err)
-					fallidas++
-				}
-			} else {
-				// Otro tipo de error
-				log.Printf("❌ Error actualizando propiedad: %v\n", err)
-				fallidas++
-				break
-			}
+		// Actualizar la propiedad en la base de datos
+		log.Printf("[Escritor] Actualizando propiedad %s en la base de datos...\n", prop.Codigo)
+		err = database.UpdatePropiedadDetalles(&prop)
+		if err != nil {
+			log.Printf("[Escritor] ❌ Error actualizando propiedad: %v\n", err)
+			resultadosChan <- resultado
+		} else {
+			resultado.exito = true
+			resultadosChan <- resultado
 		}
-
-		indexTest++
-		if testMode && indexTest == 5 {
-			break
-		}
-
-		// Delay fijo entre requests para evitar sobrecargar la base de datos
-		time.Sleep(3 * time.Second)
 	}
-
-	fmt.Printf("\nResumen:\n"+
-		"- Propiedades actualizadas: %d\n"+
-		"- Propiedades fallidas: %d\n"+
-		"- Propiedades no disponibles: %d\n",
-		actualizadas, fallidas, noDisponibles)
-
-	return nil
 }
