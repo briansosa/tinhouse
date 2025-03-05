@@ -45,9 +45,83 @@ func (s *TokkoScraper) SearchProperties(ctx context.Context) ([]models.Property,
 	taskCtx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 
+	// Establecer un timeout más largo para permitir el scroll (3 minutos)
+	taskCtx, cancel = context.WithTimeout(taskCtx, 3*time.Minute)
+	defer cancel()
+
+	// Navegar a la página y esperar a que cargue
+	fmt.Println("Navegando a la página y esperando carga inicial...")
 	err := chromedp.Run(taskCtx,
 		chromedp.Navigate(url),
 		chromedp.Sleep(5*time.Second),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error navegando a la página: %v", err)
+	}
+
+	// Implementar scroll con detección de fin de lista
+	var lastCount int
+	var sameCountIterations int
+	maxScrollAttempts := 30           // Límite máximo de intentos de scroll
+	scrollWaitTime := 3 * time.Second // Tiempo de espera entre scrolls
+
+	fmt.Println("Iniciando proceso de scroll para cargar todas las propiedades...")
+	startTime := time.Now()
+
+	for i := 0; i < maxScrollAttempts; i++ {
+		var currentCount int
+
+		// Obtener el número actual de propiedades
+		err := chromedp.Run(taskCtx, chromedp.Evaluate(`
+			(() => {
+				const container = document.querySelector('#propiedades.resultados-list');
+				const properties = container ? Array.from(container.querySelectorAll('li')) : [];
+				return properties.length;
+			})()
+		`, &currentCount))
+
+		if err != nil {
+			fmt.Printf("Error al contar propiedades: %v\n", err)
+			break
+		}
+
+		fmt.Printf("Iteración %d: %d propiedades encontradas\n", i+1, currentCount)
+
+		// Si el número de propiedades no ha cambiado después de varios intentos, asumimos que hemos llegado al final
+		if currentCount == lastCount {
+			sameCountIterations++
+			if sameCountIterations >= 3 {
+				fmt.Println("No se encontraron más propiedades después de varios intentos de scroll. Finalizando.")
+				break
+			}
+		} else {
+			sameCountIterations = 0
+			lastCount = currentCount
+		}
+
+		// Hacer scroll hacia abajo
+		err = chromedp.Run(taskCtx, chromedp.Evaluate(`
+			(() => {
+				window.scrollTo(0, document.body.scrollHeight);
+				return true;
+			})()
+		`, nil))
+
+		if err != nil {
+			fmt.Printf("Error al hacer scroll: %v\n", err)
+			break
+		}
+
+		// Esperar a que se carguen más propiedades
+		chromedp.Run(taskCtx, chromedp.Sleep(scrollWaitTime))
+	}
+
+	elapsedTime := time.Since(startTime)
+	fmt.Printf("Proceso de scroll completado en %s\n", elapsedTime)
+
+	// Una vez que hemos terminado de hacer scroll, extraemos todas las propiedades
+	fmt.Println("Extrayendo datos de todas las propiedades encontradas...")
+	err = chromedp.Run(taskCtx,
 		chromedp.Evaluate(`
 			(() => {
 				console.log('=== Debug Info ===');
@@ -119,6 +193,7 @@ func (s *TokkoScraper) SearchProperties(ctx context.Context) ([]models.Property,
 		return nil, fmt.Errorf("error extrayendo propiedades: %v", err)
 	}
 
+	fmt.Printf("Total de propiedades extraídas: %d\n", len(properties))
 	return properties, nil
 }
 
@@ -762,10 +837,10 @@ func (s *TokkoScraper) GetPropertyDetails(ctx context.Context, url string) (*mod
 												}
 											}
 											
-											// Si no se pudo clasificar, añadir como adicional
-											if (!classified && text.length > 2) {
-												featuresFound.adicionales.push(text);
-											}
+													// Si no se pudo clasificar, añadir como adicional
+													if (!classified && text.length > 2) {
+														featuresFound.adicionales.push(text);
+													}
 										}
 									});
 								} else {

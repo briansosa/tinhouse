@@ -128,7 +128,7 @@ func AnalyzeSystem(database *db.DB) error {
 }
 
 // SearchProperties busca propiedades en las inmobiliarias y las guarda en la DB
-func SearchProperties(database *db.DB, testMode bool) error {
+func SearchProperties(database *db.DB, testMode bool, inmobiliariaFilter string) error {
 	ctx := context.Background()
 
 	// Obtener inmobiliarias con sistema identificado
@@ -138,6 +138,21 @@ func SearchProperties(database *db.DB, testMode bool) error {
 	}
 
 	fmt.Printf("Encontradas %d inmobiliarias con sistema identificado\n", len(inmobiliarias))
+
+	// Filtrar por nombre de inmobiliaria si se especificó
+	var inmobiliariasFiltradas []db.Inmobiliaria
+	if inmobiliariaFilter != "" {
+		for _, inmo := range inmobiliarias {
+			if strings.Contains(strings.ToLower(inmo.Nombre), strings.ToLower(inmobiliariaFilter)) {
+				inmobiliariasFiltradas = append(inmobiliariasFiltradas, inmo)
+			}
+		}
+		if len(inmobiliariasFiltradas) == 0 {
+			return fmt.Errorf("no se encontró ninguna inmobiliaria con el nombre '%s'", inmobiliariaFilter)
+		}
+		inmobiliarias = inmobiliariasFiltradas
+		fmt.Printf("Filtrando por inmobiliaria: %s (encontradas %d)\n", inmobiliariaFilter, len(inmobiliarias))
+	}
 
 	var totalPropiedades, nuevasPropiedades, propiedadesExistentes int
 

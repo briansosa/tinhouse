@@ -17,10 +17,11 @@ const (
 )
 
 type Flags struct {
-	Mode     ExecutionMode
-	DBPath   string
-	TestMode bool
-	Zone     string // Zona para búsqueda de inmobiliarias
+	Mode         ExecutionMode
+	DBPath       string
+	TestMode     bool
+	Zone         string // Zona para búsqueda de inmobiliarias
+	Inmobiliaria string // Nombre de la inmobiliaria para filtrar
 }
 
 func ParseFlags() (*Flags, error) {
@@ -30,6 +31,7 @@ func ParseFlags() (*Flags, error) {
 	flag.StringVar(&flags.DBPath, "db", "internal/db/findhouse.db", "Ruta a la base de datos SQLite")
 	flag.BoolVar(&flags.TestMode, "test", false, "Ejecutar en modo de prueba")
 	flag.StringVar(&flags.Zone, "zone", "", "Zona para búsqueda de inmobiliarias (ej: Lanús, Avellaneda, etc)")
+	flag.StringVar(&flags.Inmobiliaria, "inmobiliaria", "", "Nombre de la inmobiliaria para filtrar (solo para search-properties y update-properties)")
 
 	if err := flag.CommandLine.Parse(os.Args[1:]); err != nil {
 		return nil, fmt.Errorf("error parsing flags: %w", err)

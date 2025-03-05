@@ -57,8 +57,8 @@ func runProcess(database *db.DB, flags *configuration.Flags) error {
 		}
 
 	case configuration.ModeSearchProperties:
-		// Eliminamos los filtros fijos
-		if err := searchProperties(database, flags.TestMode); err != nil {
+		// Pasamos el nombre de la inmobiliaria como filtro
+		if err := searchProperties(database, flags.TestMode, flags.Inmobiliaria); err != nil {
 			return fmt.Errorf("error en búsqueda de propiedades: %w", err)
 		}
 
@@ -83,8 +83,8 @@ func analyzeSystems(database *db.DB) error {
 	return analyzer.AnalyzeSystem(database)
 }
 
-func searchProperties(database *db.DB, testMode bool) error {
-	return analyzer.SearchProperties(database, testMode)
+func searchProperties(database *db.DB, testMode bool, inmobiliaria string) error {
+	return analyzer.SearchProperties(database, testMode, inmobiliaria)
 }
 
 func updateProperties(database *db.DB, testMode bool) error {
