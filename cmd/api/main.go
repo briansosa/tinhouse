@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	dbPath := flag.String("db", "findhouse.db", "Path to SQLite database")
+	dbPath := flag.String("db", "../../internal/db/findhouse.db", "Path to SQLite database")
 	port := flag.Int("port", 8080, "Port to listen on")
 	flag.Parse()
 

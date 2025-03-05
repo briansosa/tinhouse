@@ -10,8 +10,6 @@ import (
 
 	"github.com/findhouse/internal/db"
 	"github.com/findhouse/internal/scraper"
-	"github.com/findhouse/internal/scraper/tokko"
-	"golang.org/x/exp/rand"
 )
 
 // SearchAndSaveInmobiliarias busca inmobiliarias en Google Maps y guarda solo las nuevas en la DB
@@ -128,44 +126,47 @@ func AnalyzeSystem(database *db.DB) error {
 	return nil
 }
 
+// SearchProperties busca propiedades en las inmobiliarias y las guarda en la DB
 func SearchProperties(database *db.DB, testMode bool) error {
-	// Obtener todas las inmobiliarias con sistema
+	ctx := context.Background()
+
+	// Obtener inmobiliarias con sistema identificado
 	inmobiliarias, err := database.GetInmobiliariasSistema()
 	if err != nil {
 		return fmt.Errorf("error obteniendo inmobiliarias: %v", err)
 	}
 
-	// Filtrar solo las que usan Tokko
-	var tokkoInmobiliarias []db.Inmobiliaria
+	fmt.Printf("Encontradas %d inmobiliarias con sistema identificado\n", len(inmobiliarias))
+
+	var totalPropiedades, nuevasPropiedades, propiedadesExistentes int
+
+	var indexTest int
 	for _, inmo := range inmobiliarias {
-		if strings.Contains(strings.ToLower(inmo.Sistema), "tokko") {
-			tokkoInmobiliarias = append(tokkoInmobiliarias, inmo)
-		}
-	}
-
-	if testMode && len(tokkoInmobiliarias) > 0 {
-		tokkoInmobiliarias = tokkoInmobiliarias[:1]
-		fmt.Println("Modo test: usando solo", tokkoInmobiliarias[0].Nombre)
-	}
-
-	fmt.Printf("Encontradas %d inmobiliarias con sistema (%d usan Tokko)\n",
-		len(inmobiliarias), len(tokkoInmobiliarias))
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-	defer cancel()
-
-	for _, inmo := range tokkoInmobiliarias {
 		fmt.Printf("\nScrapeando %s (%s)...\n", inmo.Nombre, inmo.URL)
 
-		scraper := tokko.New(inmo.URL)
-		// Ya no pasamos filtros al scraper
-		properties, err := scraper.SearchProperties(ctx)
+		// Crear un scraper basado en el sistema de la inmobiliaria
+		propertyScraper := scraper.NewScraper(inmo.Sistema, inmo.URL)
+		if propertyScraper == nil {
+			log.Printf("Sistema no soportado: %s\n", inmo.Sistema)
+			continue
+		}
+
+		// Crear contexto con timeout para evitar bloqueos
+		propCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+
+		// Usar el scraper para buscar propiedades
+		properties, err := propertyScraper.SearchProperties(propCtx)
+		cancel()
+
 		if err != nil {
 			log.Printf("Error scrapeando %s: %v\n", inmo.Nombre, err)
 			continue
 		}
 
-		var nuevas, actualizadas int
+		fmt.Printf("Encontradas %d propiedades en %s\n", len(properties), inmo.Nombre)
+		totalPropiedades += len(properties)
+
+		// Procesar cada propiedad
 		for _, prop := range properties {
 			// Convertir de models.Property a db.Propiedad
 			propiedad := &db.Propiedad{
@@ -188,15 +189,26 @@ func SearchProperties(database *db.DB, testMode bool) error {
 			}
 
 			if propiedad.CreatedAt == propiedad.UpdatedAt {
-				nuevas++
+				nuevasPropiedades++
 			} else {
-				actualizadas++
+				propiedadesExistentes++
 			}
 		}
 
-		fmt.Printf("Encontradas %d propiedades en %s (%d nuevas, %d actualizadas)\n",
-			len(properties), inmo.Nombre, nuevas, actualizadas)
+		indexTest++
+		if testMode && indexTest == 5 {
+			break
+		}
+
+		// Delay entre inmobiliarias para no sobrecargar
+		time.Sleep(2 * time.Second)
 	}
+
+	fmt.Printf("\nResumen:\n"+
+		"- Total propiedades encontradas: %d\n"+
+		"- Propiedades nuevas: %d\n"+
+		"- Propiedades existentes: %d\n",
+		totalPropiedades, nuevasPropiedades, propiedadesExistentes)
 
 	return nil
 }
@@ -206,32 +218,27 @@ func ptr[T any](v T) *T {
 	return &v
 }
 
+// UpdateProperties actualiza los detalles de las propiedades pendientes
 func UpdateProperties(database *db.DB, testMode bool) error {
-	fmt.Println("🚀 Iniciando proceso de actualización")
-
-	// Quitamos el timeout global
 	ctx := context.Background()
 
-	// Obtener propiedades pendientes
+	// Obtener propiedades sin detalles
 	propiedades, err := database.GetPropiedadesSinDetalles()
 	if err != nil {
 		return fmt.Errorf("error obteniendo propiedades sin detalles: %v", err)
 	}
 
-	fmt.Printf("Encontradas %d propiedades pendientes\n", len(propiedades))
-
-	if testMode && len(propiedades) > 0 {
-		propiedades = propiedades[:1]
-		fmt.Println("Modo test: usando solo una propiedad")
-	}
+	fmt.Printf("Encontradas %d propiedades sin detalles\n", len(propiedades))
 
 	var actualizadas, fallidas, noDisponibles int
 
+	var indexTest int
 	for _, prop := range propiedades {
-		fmt.Printf("\n📝 Procesando propiedad %s\n", prop.Codigo)
+		fmt.Printf("\nActualizando propiedad %s\n", prop.Codigo)
 		fmt.Printf("   URL: %s\n", prop.URL)
 		fmt.Printf("   Inmobiliaria ID: %d\n", prop.InmobiliariaID)
 
+		// Obtener información de la inmobiliaria
 		inmobiliaria, err := database.GetInmobiliariaByID(prop.InmobiliariaID)
 		if err != nil {
 			log.Printf("❌ Error obteniendo inmobiliaria %d: %v\n", prop.InmobiliariaID, err)
@@ -241,17 +248,17 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 
 		fmt.Printf("   Inmobiliaria: %s (Sistema: %s)\n", inmobiliaria.Nombre, inmobiliaria.Sistema)
 
-		// Por ahora solo manejamos Tokko
-		if !strings.Contains(strings.ToLower(inmobiliaria.Sistema), "tokko") {
+		// Obtener el scraper adecuado para el sistema de la inmobiliaria
+		propertyScraper := scraper.NewScraper(inmobiliaria.Sistema, inmobiliaria.URL)
+		if propertyScraper == nil {
 			log.Printf("Sistema no soportado: %s\n", inmobiliaria.Sistema)
 			fallidas++
 			continue
 		}
 
 		// Obtener detalles usando el contexto con timeout
-		scraper := tokko.New(inmobiliaria.URL)
 		propCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-		details, err := scraper.GetPropertyDetails(propCtx, prop.URL)
+		details, err := propertyScraper.GetPropertyDetails(propCtx, prop.URL)
 		cancel() // Liberamos recursos
 
 		if err != nil {
@@ -259,7 +266,7 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 				log.Printf("⌛ Timeout al procesar propiedad: %s, reintentando...\n", prop.URL)
 				// Reintento con más tiempo
 				propCtx, cancel = context.WithTimeout(ctx, 5*time.Minute)
-				details, err = scraper.GetPropertyDetails(propCtx, prop.URL)
+				details, err = propertyScraper.GetPropertyDetails(propCtx, prop.URL)
 				cancel()
 			}
 			if err != nil {
@@ -270,10 +277,14 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 			}
 		}
 
-		// Log para verificar los detalles obtenidos
-		fmt.Printf("   Detalles obtenidos: %+v\n", details)
+		// Verificar si la propiedad ya no está disponible
+		if details.Descripcion == "Propiedad no disponible" {
+			log.Printf("⚠️ Propiedad no disponible: %s\n", prop.URL)
+			noDisponibles++
+			continue
+		}
 
-		// Actualizar la propiedad con los detalles
+		// Actualizar los campos de la propiedad con los detalles obtenidos
 		prop.TipoPropiedad = &details.TipoPropiedad
 		prop.Ubicacion = &details.Ubicacion
 		prop.Dormitorios = &details.Dormitorios
@@ -300,7 +311,6 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 		if details.Latitud != 0 && details.Longitud != 0 {
 			prop.Latitud = &details.Latitud
 			prop.Longitud = &details.Longitud
-			fmt.Printf("   Coordenadas: Lat %f, Lng %f\n", details.Latitud, details.Longitud)
 		}
 
 		// Preparar las características para guardar
@@ -327,8 +337,13 @@ func UpdateProperties(database *db.DB, testMode bool) error {
 		// Log para confirmar la actualización
 		fmt.Printf("✓ Propiedad %s actualizada exitosamente\n", prop.Codigo)
 
-		// Delay variable entre requests
-		time.Sleep(time.Duration(2+rand.Intn(3)) * time.Second)
+		indexTest++
+		if testMode && indexTest == 5 {
+			break
+		}
+
+		// Delay fijo entre requests
+		time.Sleep(3 * time.Second)
 	}
 
 	fmt.Printf("\nResumen:\n"+

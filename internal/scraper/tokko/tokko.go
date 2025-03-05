@@ -10,18 +10,20 @@ import (
 	"github.com/findhouse/internal/models"
 )
 
-type Scraper struct {
+// TokkoScraper implementa la interfaz PropertyScraper para el sistema Tokko
+type TokkoScraper struct {
 	BaseURL string
 }
 
-func New(baseURL string) *Scraper {
+// New crea una nueva instancia de TokkoScraper
+func New(baseURL string) *TokkoScraper {
 	cleanURL := strings.TrimRight(baseURL, "/")
-	return &Scraper{
+	return &TokkoScraper{
 		BaseURL: cleanURL,
 	}
 }
 
-func (s *Scraper) SearchProperties(ctx context.Context) ([]models.Property, error) {
+func (s *TokkoScraper) SearchProperties(ctx context.Context) ([]models.Property, error) {
 	baseURL := strings.TrimRight(s.BaseURL, "/")
 
 	// Simplificamos la URL para obtener todas las propiedades sin filtros
@@ -121,7 +123,7 @@ func (s *Scraper) SearchProperties(ctx context.Context) ([]models.Property, erro
 }
 
 // GetPropertyDetails obtiene los detalles de una propiedad específica
-func (s *Scraper) GetPropertyDetails(ctx context.Context, url string) (*models.PropertyDetails, error) {
+func (s *TokkoScraper) GetPropertyDetails(ctx context.Context, url string) (*models.PropertyDetails, error) {
 	fmt.Printf("🔍 Intentando obtener detalles de: %s\n", url)
 
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
