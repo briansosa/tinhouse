@@ -32,12 +32,35 @@ const FilterChips = ({ filters, onRemove }) => {
         const chips = [];
 
         // Tipo de propiedad
-        if (filters.propertyType && filters.propertyType !== 'all') {
-            chips.push({
-                id: 'propertyType',
-                label: propertyTypeLabels[filters.propertyType] || filters.propertyType,
-                onRemove: () => onRemove('propertyType', 'all')
-            });
+        if (filters.propertyType) {
+            if (Array.isArray(filters.propertyType)) {
+                // Si es un array y no contiene 'all' y tiene elementos, mostrar chip
+                if (!filters.propertyType.includes('all') && filters.propertyType.length > 0) {
+                    // Si hay múltiples tipos seleccionados
+                    if (filters.propertyType.length > 1) {
+                        chips.push({
+                            id: 'propertyType',
+                            label: `${filters.propertyType.length} tipos de propiedad`,
+                            onRemove: () => onRemove('propertyType', ['all'])
+                        });
+                    } else {
+                        // Si solo hay un tipo seleccionado
+                        const typeId = filters.propertyType[0];
+                        chips.push({
+                            id: 'propertyType',
+                            label: propertyTypeLabels[typeId] || typeId,
+                            onRemove: () => onRemove('propertyType', ['all'])
+                        });
+                    }
+                }
+            } else if (filters.propertyType !== 'all') {
+                // Compatibilidad con versión anterior (string)
+                chips.push({
+                    id: 'propertyType',
+                    label: propertyTypeLabels[filters.propertyType] || filters.propertyType,
+                    onRemove: () => onRemove('propertyType', 'all')
+                });
+            }
         }
 
         // Rango de precio

@@ -94,8 +94,18 @@ const convertFilters = (filters) => {
   
   const backendFilters = {};
 
-  if (filters.propertyType && filters.propertyType !== 'all') {
-    backendFilters.property_type_id = filters.propertyType;
+  // Manejar tipos de propiedad (ahora como array)
+  if (filters.propertyType) {
+    // Si contiene 'all' o está vacío, no aplicar filtro
+    if (!Array.isArray(filters.propertyType)) {
+      // Compatibilidad con versión anterior (string único)
+      if (filters.propertyType !== 'all') {
+        backendFilters.property_type_id = filters.propertyType;
+      }
+    } else if (!filters.propertyType.includes('all') && filters.propertyType.length > 0) {
+      // Convertir array a string separado por comas
+      backendFilters.property_type_ids = filters.propertyType.join(',');
+    }
   }
 
   if (filters.locations && filters.locations.length > 0) {

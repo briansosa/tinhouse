@@ -15,8 +15,8 @@ export default function Settings({ setShowNavBar }) {
     const [filters, setFilters] = useState(() => {
         // Intentar cargar los filtros guardados del localStorage
         const savedFilters = localStorage.getItem('globalFilters');
-        return savedFilters ? JSON.parse(savedFilters) : {
-            propertyType: 'all',
+        const defaultFilters = {
+            propertyType: ['all'],
             showOnlyWithNotes: false,
             showOnlyFavorites: false,
             priceRange: {
@@ -34,6 +34,17 @@ export default function Settings({ setShowNavBar }) {
             bathrooms: null,
             antiquity: null
         };
+        
+        if (savedFilters) {
+            const parsedFilters = JSON.parse(savedFilters);
+            // Convertir propertyType a array si es string (compatibilidad con versión anterior)
+            if (parsedFilters.propertyType && !Array.isArray(parsedFilters.propertyType)) {
+                parsedFilters.propertyType = [parsedFilters.propertyType];
+            }
+            return parsedFilters;
+        }
+        
+        return defaultFilters;
     });
 
     // Estado para el tema
@@ -179,8 +190,8 @@ export default function Settings({ setShowNavBar }) {
                     <span className="text-gray-300 dark:text-gray-300">Tipo de propiedad</span>
                     <div className="flex items-center">
                         <span className="text-gray-400 dark:text-gray-400 mr-2">
-                            {filters.propertyType === 'all' ? 'Todas' : 
-                             propertyTypeLabels[filters.propertyType] || filters.propertyType}
+                            {filters.propertyType.length > 1 ? 'Múltiples' : filters.propertyType[0] === 'all' ? 'Todas' : 
+                             propertyTypeLabels[filters.propertyType[0]] || filters.propertyType[0]}
                         </span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

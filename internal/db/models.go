@@ -104,6 +104,7 @@ type PropertyNote struct {
 type PropertyFilter struct {
 	PropertyType      string   `json:"property_type"`
 	PropertyTypeID    *int64   `json:"property_type_id"`
+	PropertyTypeIDs   []int64  `json:"property_type_ids"`
 	Locations         []string `json:"locations"`
 	Features          []string `json:"features"`
 	PriceMin          *float64 `json:"price_min"`

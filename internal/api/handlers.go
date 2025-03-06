@@ -480,6 +480,26 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		}
 	}
 
+	// Múltiples tipos de propiedad (por IDs)
+	if propertyTypeIDs := r.URL.Query().Get("property_type_ids"); propertyTypeIDs != "" {
+		idStrings := strings.Split(propertyTypeIDs, ",")
+		var ids []int64
+
+		for _, idStr := range idStrings {
+			id, err := strconv.ParseInt(strings.TrimSpace(idStr), 10, 64)
+			if err != nil {
+				fmt.Printf("Error al convertir un ID de property_type_ids a int64: %v\n", err)
+				continue
+			}
+			ids = append(ids, id)
+		}
+
+		if len(ids) > 0 {
+			filter.PropertyTypeIDs = ids
+			fmt.Printf("Filtro property_type_ids: %v\n", ids)
+		}
+	}
+
 	// Ubicaciones
 	if locations := r.URL.Query().Get("locations"); locations != "" {
 		filter.Locations = strings.Split(locations, ",")

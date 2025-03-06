@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { getPropertyTypes } from '../../services/api';
 
 const PropertyTypeFilter = ({ onChange, initialValue = 'all' }) => {
-    const [selectedType, setSelectedType] = useState(initialValue);
+    // Convertir initialValue a array si es un string
+    const initialArray = Array.isArray(initialValue) ? initialValue : [initialValue];
+    const [selectedTypes, setSelectedTypes] = useState(initialArray);
     const [propertyTypes, setPropertyTypes] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -53,9 +55,29 @@ const PropertyTypeFilter = ({ onChange, initialValue = 'all' }) => {
     ];
 
     const handleTypeSelect = (typeId) => {
-        setSelectedType(typeId);
-        // Pasar directamente el ID al componente padre
-        onChange(typeId);
+        let newSelectedTypes;
+        
+        // Si se selecciona "Todas", deseleccionar las demás opciones
+        if (typeId === 'all') {
+            newSelectedTypes = ['all'];
+        } else {
+            // Si ya está seleccionado, quitarlo de la selección
+            if (selectedTypes.includes(typeId)) {
+                newSelectedTypes = selectedTypes.filter(id => id !== typeId);
+                // Si no queda ninguna selección, seleccionar "Todas"
+                if (newSelectedTypes.length === 0 || (newSelectedTypes.length === 1 && newSelectedTypes[0] === 'all')) {
+                    newSelectedTypes = ['all'];
+                }
+            } else {
+                // Si se está agregando una nueva selección, quitar "Todas" si estaba seleccionada
+                newSelectedTypes = selectedTypes.filter(id => id !== 'all');
+                newSelectedTypes.push(typeId);
+            }
+        }
+        
+        setSelectedTypes(newSelectedTypes);
+        // Pasar el array de IDs al componente padre
+        onChange(newSelectedTypes);
     };
 
     if (isLoading) {
@@ -85,7 +107,7 @@ const PropertyTypeFilter = ({ onChange, initialValue = 'all' }) => {
                         key={type.id}
                         onClick={() => handleTypeSelect(type.id)}
                         className={`p-3 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-                            selectedType === type.id
+                            selectedTypes.includes(type.id)
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-gray-800 text-gray-300'
                         }`}

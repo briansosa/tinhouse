@@ -18,7 +18,7 @@ export default function Likes({ setShowNavBar }) {
     const [sortBy, setSortBy] = useState('recent');
     const activeRequest = useRef(null);
     const [activeFilters, setActiveFilters] = useState({
-        propertyType: null,
+        propertyType: ['all'],
         showOnlyWithNotes: false,
         showOnlyFavorites: false,
         priceRange: {
@@ -125,7 +125,9 @@ export default function Likes({ setShowNavBar }) {
 
     const hasActiveFilters = () => {
         return (
-            activeFilters.propertyType !== 'all' ||
+            (Array.isArray(activeFilters.propertyType) ? 
+                !activeFilters.propertyType.includes('all') && activeFilters.propertyType.length > 0 : 
+                activeFilters.propertyType !== 'all') ||
             activeFilters.showOnlyWithNotes ||
             activeFilters.showOnlyFavorites ||
             activeFilters.priceRange.min !== null ||

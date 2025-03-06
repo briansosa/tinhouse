@@ -12,7 +12,7 @@ import PropertyTypeFilter from './PropertyTypeFilter';
 
 const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [filters, setFilters] = useState({
-        propertyType: 'all',
+        propertyType: ['all'],
         showOnlyWithNotes: false,
         showOnlyFavorites: false,
         priceRange: {
@@ -75,7 +75,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
 
     const resetFilters = () => {
         setFilters({
-            propertyType: 'all',
+            propertyType: ['all'],
             showOnlyWithNotes: false,
             showOnlyFavorites: false,
             priceRange: {
@@ -98,7 +98,9 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     // Verificar si hay filtros activos
     const hasActiveFilters = () => {
         return (
-            filters.propertyType !== 'all' ||
+            (Array.isArray(filters.propertyType) ? 
+                !filters.propertyType.includes('all') && filters.propertyType.length > 0 : 
+                filters.propertyType !== 'all') ||
             filters.showOnlyWithNotes ||
             filters.showOnlyFavorites ||
             filters.priceRange.min !== null ||
@@ -146,7 +148,10 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                     <span className="text-gray-200 dark:text-gray-200">Tipo de propiedad</span>
                     <div className="flex items-center">
                         <span className="text-gray-400 dark:text-gray-400 mr-2">
-                            {filters.propertyType === 'all' ? 'Todas' : filters.propertyType}
+                            {Array.isArray(filters.propertyType) ? 
+                                (filters.propertyType.includes('all') ? 'Todas' : 
+                                 filters.propertyType.length > 1 ? 'Múltiples' : filters.propertyType[0]) : 
+                                (filters.propertyType === 'all' ? 'Todas' : filters.propertyType)}
                         </span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

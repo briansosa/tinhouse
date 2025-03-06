@@ -757,7 +757,16 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 	var args []interface{}
 
 	// Filtro por tipo de propiedad
-	if filter.PropertyTypeID != nil {
+	if filter.PropertyTypeIDs != nil && len(filter.PropertyTypeIDs) > 0 {
+		// Usar múltiples IDs de tipos de propiedad
+		placeholders := make([]string, len(filter.PropertyTypeIDs))
+		for i := range filter.PropertyTypeIDs {
+			placeholders[i] = "?"
+			args = append(args, filter.PropertyTypeIDs[i])
+		}
+		conditions = append(conditions, fmt.Sprintf("p.tipo_propiedad IN (%s)", strings.Join(placeholders, ",")))
+		fmt.Printf("Agregando condición de tipo_propiedad con múltiples IDs: %v\n", filter.PropertyTypeIDs)
+	} else if filter.PropertyTypeID != nil {
 		// Usar directamente el ID del tipo de propiedad
 		conditions = append(conditions, "p.tipo_propiedad = ?")
 		args = append(args, *filter.PropertyTypeID)
