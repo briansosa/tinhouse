@@ -110,8 +110,16 @@ type PropertyFilter struct {
 	PriceMin          *float64 `json:"price_min"`
 	PriceMax          *float64 `json:"price_max"`
 	Currency          string   `json:"currency"`
-	SizeMin           *float64 `json:"size_min"`
-	SizeMax           *float64 `json:"size_max"`
+	SizeMin           *float64 `json:"size_min"`         // Compatibilidad con versión anterior
+	SizeMax           *float64 `json:"size_max"`         // Compatibilidad con versión anterior
+	TotalAreaMin      *float64 `json:"total_area_min"`   // Superficie Total mínima
+	TotalAreaMax      *float64 `json:"total_area_max"`   // Superficie Total máxima
+	CoveredAreaMin    *float64 `json:"covered_area_min"` // Superficie Cubierta mínima
+	CoveredAreaMax    *float64 `json:"covered_area_max"` // Superficie Cubierta máxima
+	LandAreaMin       *float64 `json:"land_area_min"`    // Superficie Terreno mínima
+	LandAreaMax       *float64 `json:"land_area_max"`    // Superficie Terreno máxima
+	Front             *float64 `json:"front"`            // Frente
+	Back              *float64 `json:"back"`             // Fondo
 	Rooms             *int     `json:"rooms"`
 	Bathrooms         *int     `json:"bathrooms"`
 	Antiquity         *int     `json:"antiquity"`

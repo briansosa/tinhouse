@@ -553,7 +553,7 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		filter.Currency = "ARS"
 	}
 
-	// Tamaño mínimo
+	// Tamaño mínimo (compatibilidad con versión anterior)
 	if sizeMin := r.URL.Query().Get("size_min"); sizeMin != "" {
 		min, err := strconv.ParseFloat(sizeMin, 64)
 		if err != nil {
@@ -562,13 +562,85 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		filter.SizeMin = &min
 	}
 
-	// Tamaño máximo
+	// Tamaño máximo (compatibilidad con versión anterior)
 	if sizeMax := r.URL.Query().Get("size_max"); sizeMax != "" {
 		max, err := strconv.ParseFloat(sizeMax, 64)
 		if err != nil {
 			return nil, fmt.Errorf("invalid size_max: %v", err)
 		}
 		filter.SizeMax = &max
+	}
+
+	// Superficie Total mínima
+	if totalAreaMin := r.URL.Query().Get("total_area_min"); totalAreaMin != "" {
+		min, err := strconv.ParseFloat(totalAreaMin, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid total_area_min: %v", err)
+		}
+		filter.TotalAreaMin = &min
+	}
+
+	// Superficie Total máxima
+	if totalAreaMax := r.URL.Query().Get("total_area_max"); totalAreaMax != "" {
+		max, err := strconv.ParseFloat(totalAreaMax, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid total_area_max: %v", err)
+		}
+		filter.TotalAreaMax = &max
+	}
+
+	// Superficie Cubierta mínima
+	if coveredAreaMin := r.URL.Query().Get("covered_area_min"); coveredAreaMin != "" {
+		min, err := strconv.ParseFloat(coveredAreaMin, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid covered_area_min: %v", err)
+		}
+		filter.CoveredAreaMin = &min
+	}
+
+	// Superficie Cubierta máxima
+	if coveredAreaMax := r.URL.Query().Get("covered_area_max"); coveredAreaMax != "" {
+		max, err := strconv.ParseFloat(coveredAreaMax, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid covered_area_max: %v", err)
+		}
+		filter.CoveredAreaMax = &max
+	}
+
+	// Superficie Terreno mínima
+	if landAreaMin := r.URL.Query().Get("land_area_min"); landAreaMin != "" {
+		min, err := strconv.ParseFloat(landAreaMin, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid land_area_min: %v", err)
+		}
+		filter.LandAreaMin = &min
+	}
+
+	// Superficie Terreno máxima
+	if landAreaMax := r.URL.Query().Get("land_area_max"); landAreaMax != "" {
+		max, err := strconv.ParseFloat(landAreaMax, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid land_area_max: %v", err)
+		}
+		filter.LandAreaMax = &max
+	}
+
+	// Frente
+	if front := r.URL.Query().Get("front"); front != "" {
+		frontValue, err := strconv.ParseFloat(front, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid front: %v", err)
+		}
+		filter.Front = &frontValue
+	}
+
+	// Fondo
+	if back := r.URL.Query().Get("back"); back != "" {
+		backValue, err := strconv.ParseFloat(back, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid back: %v", err)
+		}
+		filter.Back = &backValue
 	}
 
 	// Ambientes
@@ -652,10 +724,6 @@ func (h *Handler) GetPropertyTypes(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("Error al obtener tipos de propiedad: %v\n", err)
 		http.Error(w, fmt.Sprintf("Error al obtener tipos de propiedad: %v", err), http.StatusInternalServerError)
 		return
-	}
-
-	for i, t := range types {
-		fmt.Printf("  %d. ID: %d, Code: %s, Name: %s\n", i+1, t.ID, t.Code, t.Name)
 	}
 
 	w.Header().Set("Content-Type", "application/json")

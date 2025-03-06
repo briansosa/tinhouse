@@ -811,7 +811,7 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		}
 	}
 
-	// Filtro por tamaño (superficie)
+	// Filtro por tamaño (superficie) - Compatibilidad con versión anterior
 	if filter.SizeMin != nil {
 		conditions = append(conditions, "(p.superficie_total >= ? OR p.superficie_cubierta >= ?)")
 		args = append(args, *filter.SizeMin, *filter.SizeMin)
@@ -820,6 +820,53 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 	if filter.SizeMax != nil {
 		conditions = append(conditions, "(p.superficie_total <= ? OR p.superficie_cubierta <= ?)")
 		args = append(args, *filter.SizeMax, *filter.SizeMax)
+	}
+
+	// Filtros de superficie específicos
+
+	// Superficie Total
+	if filter.TotalAreaMin != nil {
+		conditions = append(conditions, "p.superficie_total >= ?")
+		args = append(args, *filter.TotalAreaMin)
+	}
+
+	if filter.TotalAreaMax != nil {
+		conditions = append(conditions, "p.superficie_total <= ?")
+		args = append(args, *filter.TotalAreaMax)
+	}
+
+	// Superficie Cubierta
+	if filter.CoveredAreaMin != nil {
+		conditions = append(conditions, "p.superficie_cubierta >= ?")
+		args = append(args, *filter.CoveredAreaMin)
+	}
+
+	if filter.CoveredAreaMax != nil {
+		conditions = append(conditions, "p.superficie_cubierta <= ?")
+		args = append(args, *filter.CoveredAreaMax)
+	}
+
+	// Superficie Terreno
+	if filter.LandAreaMin != nil {
+		conditions = append(conditions, "p.superficie_terreno >= ?")
+		args = append(args, *filter.LandAreaMin)
+	}
+
+	if filter.LandAreaMax != nil {
+		conditions = append(conditions, "p.superficie_terreno <= ?")
+		args = append(args, *filter.LandAreaMax)
+	}
+
+	// Frente
+	if filter.Front != nil {
+		conditions = append(conditions, "p.frente >= ?")
+		args = append(args, *filter.Front)
+	}
+
+	// Fondo
+	if filter.Back != nil {
+		conditions = append(conditions, "p.fondo >= ?")
+		args = append(args, *filter.Back)
 	}
 
 	// Filtro por ambientes

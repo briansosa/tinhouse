@@ -137,12 +137,53 @@ const convertFilters = (filters) => {
     backendFilters.price_max = filters.priceRange.max;
   }
 
-  // Convertir rango de tamaño
-  if (filters.sizeRange?.min) {
-    backendFilters.size_min = filters.sizeRange.min;
+  // Convertir filtros de superficie
+  if (filters.surface) {
+    // Superficie Total
+    if (filters.surface.totalArea?.min) {
+      backendFilters.total_area_min = filters.surface.totalArea.min;
+    }
+    if (filters.surface.totalArea?.max) {
+      backendFilters.total_area_max = filters.surface.totalArea.max;
+    }
+    
+    // Superficie Cubierta
+    if (filters.surface.coveredArea?.min) {
+      backendFilters.covered_area_min = filters.surface.coveredArea.min;
+    }
+    if (filters.surface.coveredArea?.max) {
+      backendFilters.covered_area_max = filters.surface.coveredArea.max;
+    }
+    
+    // Superficie Terreno
+    if (filters.surface.landArea?.min) {
+      backendFilters.land_area_min = filters.surface.landArea.min;
+    }
+    if (filters.surface.landArea?.max) {
+      backendFilters.land_area_max = filters.surface.landArea.max;
+    }
+    
+    // Frente
+    if (filters.surface.front) {
+      backendFilters.front = filters.surface.front;
+    }
+    
+    // Fondo
+    if (filters.surface.back) {
+      backendFilters.back = filters.surface.back;
+    }
   }
-  if (filters.sizeRange?.max) {
-    backendFilters.size_max = filters.sizeRange.max;
+  
+  // Compatibilidad con versión anterior (sizeRange)
+  else if (filters.sizeRange) {
+    if (filters.sizeRange.min) {
+      backendFilters.size_min = filters.sizeRange.min;
+      backendFilters.total_area_min = filters.sizeRange.min;
+    }
+    if (filters.sizeRange.max) {
+      backendFilters.size_max = filters.sizeRange.max;
+      backendFilters.total_area_max = filters.sizeRange.max;
+    }
   }
 
   // Convertir ambientes, baños y antigüedad

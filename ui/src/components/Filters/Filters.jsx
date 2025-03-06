@@ -3,7 +3,7 @@ import FilterDrawer from './FilterDrawer';
 import PriceRangeFilter from './PriceRangeFilter';
 import LocationFilter from './LocationFilter';
 import FeaturesFilter from './FeaturesFilter';
-import SizeRangeFilter from './SizeRangeFilter';
+import SurfaceFilter from './SurfaceFilter';
 import RoomsFilter from './RoomsFilter';
 import BathroomsFilter from './BathroomsFilter';
 import AntiquityFilter from './AntiquityFilter';
@@ -23,9 +23,12 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         },
         locations: [],
         features: [],
-        sizeRange: {
-            min: null,
-            max: null
+        surface: {
+            totalArea: { min: null, max: null },
+            coveredArea: { min: null, max: null },
+            landArea: { min: null, max: null },
+            front: null,
+            back: null
         },
         rooms: null,
         bathrooms: null,
@@ -65,6 +68,17 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     // Inicializar filtros con los valores iniciales
     useEffect(() => {
         if (initialFilters) {
+            // Compatibilidad con versión anterior (sizeRange a surface)
+            if (initialFilters.sizeRange && !initialFilters.surface) {
+                initialFilters.surface = {
+                    totalArea: initialFilters.sizeRange,
+                    coveredArea: { min: null, max: null },
+                    landArea: { min: null, max: null },
+                    front: null,
+                    back: null
+                };
+            }
+            
             setFilters(prev => ({
                 ...prev,
                 ...initialFilters
@@ -87,12 +101,48 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         return `${formatPrice(min)} - ${formatPrice(max)}`;
     };
 
-    const getSizeRangeLabel = () => {
-        const { min, max } = filters.sizeRange;
-        if (!min && !max) return 'Cualquier tamaño';
-        if (!max) return `Desde ${min} m²`;
-        if (!min) return `Hasta ${max} m²`;
-        return `${min} - ${max} m²`;
+    const getSurfaceLabel = () => {
+        // Verificar si hay algún filtro de superficie activo
+        const { totalArea, coveredArea, landArea, front, back } = filters.surface;
+        
+        if ((!totalArea.min && !totalArea.max) && 
+            (!coveredArea.min && !coveredArea.max) && 
+            (!landArea.min && !landArea.max) && 
+            !front && !back) {
+            return 'Cualquier superficie';
+        }
+        
+        const labels = [];
+        
+        // Superficie Total
+        if (totalArea.min || totalArea.max) {
+            if (!totalArea.max) labels.push(`Total: desde ${totalArea.min} m²`);
+            else if (!totalArea.min) labels.push(`Total: hasta ${totalArea.max} m²`);
+            else labels.push(`Total: ${totalArea.min} - ${totalArea.max} m²`);
+        }
+        
+        // Superficie Cubierta
+        if (coveredArea.min || coveredArea.max) {
+            if (!coveredArea.max) labels.push(`Cubierta: desde ${coveredArea.min} m²`);
+            else if (!coveredArea.min) labels.push(`Cubierta: hasta ${coveredArea.max} m²`);
+            else labels.push(`Cubierta: ${coveredArea.min} - ${coveredArea.max} m²`);
+        }
+        
+        // Superficie Terreno
+        if (landArea.min || landArea.max) {
+            if (!landArea.max) labels.push(`Terreno: desde ${landArea.min} m²`);
+            else if (!landArea.min) labels.push(`Terreno: hasta ${landArea.max} m²`);
+            else labels.push(`Terreno: ${landArea.min} - ${landArea.max} m²`);
+        }
+        
+        // Frente y Fondo
+        if (front || back) {
+            const frontText = front ? `${front}m` : '-';
+            const backText = back ? `${back}m` : '-';
+            labels.push(`Frente x Fondo: ${frontText} x ${backText}`);
+        }
+        
+        return labels.join(', ');
     };
 
     const resetFilters = () => {
@@ -103,13 +153,16 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             priceRange: {
                 min: null,
                 max: null,
-                currency: 'ARS'
+                currency: 'USD'
             },
             locations: [],
             features: [],
-            sizeRange: {
-                min: null,
-                max: null
+            surface: {
+                totalArea: { min: null, max: null },
+                coveredArea: { min: null, max: null },
+                landArea: { min: null, max: null },
+                front: null,
+                back: null
             },
             rooms: null,
             bathrooms: null,
@@ -129,8 +182,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             filters.priceRange.max !== null ||
             filters.locations.length > 0 ||
             filters.features.length > 0 ||
-            filters.sizeRange.min !== null ||
-            filters.sizeRange.max !== null ||
+            filters.surface.totalArea.min !== null ||
+            filters.surface.totalArea.max !== null ||
             filters.rooms !== null ||
             filters.bathrooms !== null ||
             filters.antiquity !== null
@@ -211,14 +264,14 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                     </div>
                 </button>
 
-                {/* Tamaño */}
+                {/* Superficie */}
                 <button 
                     onClick={() => setShowSizeRangeDrawer(true)}
                     className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
                 >
-                    <span className="text-gray-200 dark:text-gray-200">Tamaño</span>
+                    <span className="text-gray-200 dark:text-gray-200">Superficie</span>
                     <div className="flex items-center">
-                        <span className="text-gray-400 dark:text-gray-400 mr-2">{getSizeRangeLabel()}</span>
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{getSurfaceLabel()}</span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -380,13 +433,13 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             <FilterDrawer 
                 isOpen={showSizeRangeDrawer}
                 onClose={() => setShowSizeRangeDrawer(false)}
-                title="TAMAÑO"
+                title="SUPERFICIE"
                 customContent={
-                    <SizeRangeFilter
-                        initialRange={filters.sizeRange}
-                        onChange={(range) => setFilters(prev => ({
+                    <SurfaceFilter
+                        initialValues={filters.surface}
+                        onChange={(values) => setFilters(prev => ({
                             ...prev,
-                            sizeRange: range
+                            surface: values
                         }))}
                     />
                 }
