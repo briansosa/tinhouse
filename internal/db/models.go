@@ -123,6 +123,7 @@ type PropertyFilter struct {
 	Rooms             *int     `json:"rooms"`
 	Bathrooms         *int     `json:"bathrooms"`
 	Antiquity         *int     `json:"antiquity"`
+	Disposition       []string `json:"disposition"` // Disposición de la propiedad
 	ShowOnlyWithNotes bool     `json:"show_only_with_notes"`
 	ShowOnlyFavorites bool     `json:"show_only_favorites"`
 }
@@ -148,4 +149,24 @@ type PropertyType struct {
 	Code      string    `db:"code" json:"code"`
 	Name      string    `db:"name" json:"name"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
+}
+
+// Lista genérica para valores predefinidos
+type List struct {
+	ID          int64     `db:"id" json:"id"`
+	Name        string    `db:"name" json:"name"`
+	Description string    `db:"description" json:"description"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+}
+
+// Valor de una lista
+type ListValue struct {
+	ID          int64     `db:"id" json:"id"`
+	ListID      int64     `db:"list_id" json:"list_id"`
+	Value       string    `db:"value" json:"value"`
+	DisplayName string    `db:"display_name" json:"display_name"`
+	SortOrder   int       `db:"sort_order" json:"sort_order"`
+	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
 }

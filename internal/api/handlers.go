@@ -670,6 +670,12 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		filter.Antiquity = &antiquityInt
 	}
 
+	// Disposición
+	if disposition := r.URL.Query().Get("disposition"); disposition != "" {
+		filter.Disposition = strings.Split(disposition, ",")
+		fmt.Printf("Filtro disposition: %v\n", filter.Disposition)
+	}
+
 	// Solo con notas
 	if showOnlyWithNotes := r.URL.Query().Get("show_only_with_notes"); showOnlyWithNotes == "true" {
 		filter.ShowOnlyWithNotes = true
@@ -717,7 +723,7 @@ func (h *Handler) GetAvailableFeatures(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetPropertyTypes devuelve todos los tipos de propiedad disponibles
+// GetPropertyTypes devuelve los tipos de propiedades disponibles
 func (h *Handler) GetPropertyTypes(w http.ResponseWriter, r *http.Request) {
 	types, err := h.db.GetAllPropertyTypes()
 	if err != nil {
@@ -729,6 +735,24 @@ func (h *Handler) GetPropertyTypes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(types)
+}
+
+// GetListValues devuelve los valores de una lista específica
+func (h *Handler) GetListValues(w http.ResponseWriter, r *http.Request) {
+	listName := chi.URLParam(r, "listName")
+	if listName == "" {
+		http.Error(w, "Nombre de lista no especificado", http.StatusBadRequest)
+		return
+	}
+
+	values, err := h.db.GetListValuesByName(listName)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error al obtener valores de la lista %s: %v", listName, err), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(values)
 }
 
 // getPropertyTypeCode obtiene el código del tipo de propiedad

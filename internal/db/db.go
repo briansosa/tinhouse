@@ -647,6 +647,10 @@ func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) 
 
 	baseQuery += " ORDER BY p.created_at DESC"
 
+	// Log para depuración
+	fmt.Printf("Consulta SQL completa: %s\n", baseQuery)
+	fmt.Printf("Argumentos: %v\n", args)
+
 	rows, err := db.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error consultando propiedades sin calificar: %v", err)

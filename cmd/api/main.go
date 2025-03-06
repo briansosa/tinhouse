@@ -79,6 +79,9 @@ func main() {
 
 		// Ruta para obtener tipos de propiedad
 		r.Get("/property-types", h.GetPropertyTypes)
+
+		// Ruta para obtener valores de listas
+		r.Get("/lists/{listName}", h.GetListValues)
 	})
 
 	// Iniciar servidor

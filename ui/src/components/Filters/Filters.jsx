@@ -7,6 +7,7 @@ import SurfaceFilter from './SurfaceFilter';
 import RoomsFilter from './RoomsFilter';
 import BathroomsFilter from './BathroomsFilter';
 import AntiquityFilter from './AntiquityFilter';
+import DispositionFilter from './DispositionFilter';
 import FilterChips from './FilterChips';
 import PropertyTypeFilter from './PropertyTypeFilter';
 import { getPropertyTypes } from '../../services/api';
@@ -32,7 +33,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         },
         rooms: null,
         bathrooms: null,
-        antiquity: null
+        antiquity: null,
+        disposition: []
     });
 
     const [propertyTypeLabels, setPropertyTypeLabels] = useState({});
@@ -44,6 +46,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [showRoomsDrawer, setShowRoomsDrawer] = useState(false);
     const [showBathroomsDrawer, setShowBathroomsDrawer] = useState(false);
     const [showAntiquityDrawer, setShowAntiquityDrawer] = useState(false);
+    const [showDispositionDrawer, setShowDispositionDrawer] = useState(false);
 
     // Cargar tipos de propiedad para mostrar etiquetas correctas
     useEffect(() => {
@@ -166,7 +169,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             },
             rooms: null,
             bathrooms: null,
-            antiquity: null
+            antiquity: null,
+            disposition: []
         });
     };
 
@@ -186,7 +190,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             filters.surface.totalArea.max !== null ||
             filters.rooms !== null ||
             filters.bathrooms !== null ||
-            filters.antiquity !== null
+            filters.antiquity !== null ||
+            (filters.disposition && filters.disposition.length > 0)
         );
     };
 
@@ -332,6 +337,20 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                             filters.antiquity === 100 ? 'Más de 30 años' :
                             `Hasta ${filters.antiquity} años`
                         ) : 'Cualquiera'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {/* Disposición */}
+                <button 
+                    onClick={() => setShowDispositionDrawer(true)}
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-200 dark:text-gray-200">Disposición</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.disposition && filters.disposition.length ? `${filters.disposition.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -502,6 +521,21 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                         onChange={(value) => setFilters(prev => ({
                             ...prev,
                             antiquity: value
+                        }))}
+                    />
+                }
+            />
+
+            <FilterDrawer 
+                isOpen={showDispositionDrawer}
+                onClose={() => setShowDispositionDrawer(false)}
+                title="DISPOSICIÓN"
+                customContent={
+                    <DispositionFilter
+                        initialValues={filters.disposition}
+                        onChange={(values) => setFilters(prev => ({
+                            ...prev,
+                            disposition: values
                         }))}
                     />
                 }

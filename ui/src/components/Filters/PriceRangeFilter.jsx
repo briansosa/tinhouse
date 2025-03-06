@@ -12,22 +12,6 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null, cur
         'ARS': 500000000, // 500 millones de pesos
         'USD': 2000000    // 2 millones de dólares
     };
-    
-    // Valores predefinidos para facilitar la selección
-    const presetValues = {
-        'ARS': [
-            { label: '$10M', value: 10000000 },
-            { label: '$50M', value: 50000000 },
-            { label: '$100M', value: 100000000 },
-            { label: '$200M', value: 200000000 }
-        ],
-        'USD': [
-            { label: 'U$S 50K', value: 50000 },
-            { label: 'U$S 100K', value: 100000 },
-            { label: 'U$S 200K', value: 200000 },
-            { label: 'U$S 500K', value: 500000 }
-        ]
-    };
 
     const handleSliderChange = (type) => (e) => {
         const value = parseInt(e.target.value);
@@ -86,23 +70,6 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null, cur
                         ? 'Mostrando solo propiedades en pesos argentinos' 
                         : 'Mostrando solo propiedades en dólares'}
                 </p>
-            </div>
-
-            {/* Valores predefinidos */}
-            <div className="grid grid-cols-4 gap-2">
-                {presetValues[currency].map((preset) => (
-                    <button
-                        key={preset.value}
-                        onClick={() => handlePresetClick(preset.value)}
-                        className={`p-2 rounded-lg text-sm font-medium transition-all ${
-                            range.max === preset.value
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-800 dark:bg-gray-800 text-gray-300 dark:text-gray-300'
-                        }`}
-                    >
-                        {preset.label}
-                    </button>
-                ))}
             </div>
 
             {/* Inputs de rango */}

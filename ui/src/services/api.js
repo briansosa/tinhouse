@@ -197,6 +197,11 @@ const convertFilters = (filters) => {
     backendFilters.antiquity = filters.antiquity;
   }
 
+  // Convertir disposición
+  if (filters.disposition && filters.disposition.length > 0) {
+    backendFilters.disposition = filters.disposition.join(',');
+  }
+
   return backendFilters;
 };
 
@@ -210,7 +215,16 @@ export const getPropertyTypes = () => {
       return response;
     })
     .catch(error => {
-      console.error("Error en getPropertyTypes:", error);
+      console.error('Error al obtener tipos de propiedad:', error);
+      throw error;
+    });
+};
+
+export const getListValues = (listName) => {
+  return api.get(`/lists/${listName}`)
+    .then(response => response.data)
+    .catch(error => {
+      console.error(`Error al obtener valores de la lista ${listName}:`, error);
       throw error;
     });
 };

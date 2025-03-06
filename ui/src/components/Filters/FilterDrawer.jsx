@@ -31,8 +31,8 @@ const FilterDrawer = ({
         }
     }, [isOpen, options, customContent]);
 
-    // Calcular la altura máxima del drawer (50% de la pantalla o el contenido si es menor)
-    const drawerHeight = Math.min(contentHeight + 80, windowHeight * 0.5);
+    // Calcular la altura máxima del drawer (70% de la pantalla o el contenido si es menor)
+    const drawerHeight = Math.min(contentHeight + 80, windowHeight * 0.7);
     
     return (
         <AnimatePresence>
@@ -46,7 +46,7 @@ const FilterDrawer = ({
                     style={{ 
                         zIndex: 10,
                         height: drawerHeight > 0 ? `${drawerHeight}px` : 'auto',
-                        maxHeight: '50vh'
+                        maxHeight: '70vh'
                     }}
                 >
                     <div className="h-full flex flex-col">

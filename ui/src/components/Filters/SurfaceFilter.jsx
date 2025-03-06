@@ -63,7 +63,15 @@ const SurfaceFilter = ({ onChange, initialValues = {
         <div className="space-y-8 px-4">
             {/* Superficie Total */}
             <div className="space-y-4">
-                <h3 className="text-white font-semibold text-lg">Superficie Total</h3>
+                <div className="flex justify-between items-center">
+                    <h3 className="text-white font-semibold text-lg">Superficie Total</h3>
+                    <button
+                        onClick={handleReset}
+                        className="text-xs text-gray-400 hover:text-gray-300"
+                    >
+                        Restablecer
+                    </button>
+                </div>
                 
                 {/* Valores seleccionados */}
                 <div className="flex items-center justify-between text-xl">
@@ -244,16 +252,6 @@ const SurfaceFilter = ({ onChange, initialValues = {
                         />
                     </div>
                 </div>
-            </div>
-
-            {/* Botón de Restablecer */}
-            <div className="pt-4">
-                <button
-                    onClick={handleReset}
-                    className="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                    Restablecer
-                </button>
             </div>
         </div>
     );
