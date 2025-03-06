@@ -647,10 +647,6 @@ func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) 
 
 	baseQuery += " ORDER BY p.created_at DESC"
 
-	// Log para depuración
-	fmt.Printf("Consulta SQL completa: %s\n", baseQuery)
-	fmt.Printf("Argumentos: %v\n", args)
-
 	rows, err := db.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error consultando propiedades sin calificar: %v", err)
@@ -958,6 +954,16 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		conditions = append(conditions, `EXISTS (
 			SELECT 1 FROM property_ratings r WHERE r.property_id = p.id AND r.is_favorite = 1
 		)`)
+	}
+
+	// Filtro por disposición
+	if filter.Disposition != nil && len(filter.Disposition) > 0 {
+		placeholders := make([]string, len(filter.Disposition))
+		for i, disp := range filter.Disposition {
+			placeholders[i] = "?"
+			args = append(args, disp)
+		}
+		conditions = append(conditions, fmt.Sprintf("p.disposicion IN (%s)", strings.Join(placeholders, ",")))
 	}
 
 	return conditions, args
@@ -1325,6 +1331,77 @@ func (db *DB) GetPropertyTypeNameByCode(code string) (string, error) {
 	}
 
 	return name, nil
+}
+
+// GetListValuesByName devuelve los valores de una lista específica
+func (db *DB) GetListValuesByName(listName string) ([]ListValue, error) {
+	query := `
+		SELECT lv.id, lv.list_id, lv.value, lv.display_name, lv.sort_order, lv.created_at, lv.updated_at
+		FROM list_values lv
+		JOIN lists l ON lv.list_id = l.id
+		WHERE l.name = ?
+		ORDER BY lv.sort_order, lv.display_name
+	`
+
+	rows, err := db.Query(query, listName)
+	if err != nil {
+		return nil, fmt.Errorf("error consultando valores de lista %s: %w", listName, err)
+	}
+	defer rows.Close()
+
+	var values []ListValue
+	for rows.Next() {
+		var value ListValue
+		err := rows.Scan(
+			&value.ID,
+			&value.ListID,
+			&value.Value,
+			&value.DisplayName,
+			&value.SortOrder,
+			&value.CreatedAt,
+			&value.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error escaneando valor de lista: %w", err)
+		}
+		values = append(values, value)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterando resultados: %w", err)
+	}
+
+	// Si no hay valores en la base de datos, devolver valores por defecto
+	if len(values) == 0 {
+		switch listName {
+		case "disposition":
+			return createDefaultListValues(listName, []string{"frente", "contrafrente", "interno", "lateral"}), nil
+		case "orientation":
+			return createDefaultListValues(listName, []string{"norte", "sur", "este", "oeste", "noreste", "noroeste", "sureste", "suroeste"}), nil
+		case "status":
+			return createDefaultListValues(listName, []string{"a estrenar", "a reciclar", "en construcción", "refaccionado", "excelente"}), nil
+		case "operation":
+			return createDefaultListValues(listName, []string{"venta", "alquiler", "alquiler temporario"}), nil
+		case "condition":
+			return createDefaultListValues(listName, []string{"vacía", "ocupada", "en sucesión"}), nil
+		}
+	}
+
+	return values, nil
+}
+
+// createDefaultListValues crea valores de lista por defecto cuando no existen en la base de datos
+func createDefaultListValues(listName string, values []string) []ListValue {
+	result := make([]ListValue, len(values))
+	for i, v := range values {
+		result[i] = ListValue{
+			ID:          int64(i + 1),
+			Value:       v,
+			DisplayName: strings.Title(v),
+			SortOrder:   i + 1,
+		}
+	}
+	return result
 }
 
 // PropertyFeatureRelation representa la relación entre una propiedad y una característica

@@ -673,7 +673,6 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 	// Disposición
 	if disposition := r.URL.Query().Get("disposition"); disposition != "" {
 		filter.Disposition = strings.Split(disposition, ",")
-		fmt.Printf("Filtro disposition: %v\n", filter.Disposition)
 	}
 
 	// Solo con notas
