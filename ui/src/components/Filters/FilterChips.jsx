@@ -16,7 +16,9 @@ const FilterChips = ({ filters, onRemove }) => {
                 if (response.data && response.data.length > 0) {
                     const typeMap = {};
                     response.data.forEach(type => {
+                        // Guardar tanto por código como por ID
                         typeMap[type.code] = type.name;
+                        typeMap[type.id] = type.name;
                     });
                     setPropertyTypeLabels(typeMap);
                 }

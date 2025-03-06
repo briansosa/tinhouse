@@ -97,7 +97,7 @@ const PropertyTypeFilter = ({ onChange, initialValue = 'all' }) => {
     }
 
     return (
-        <div className="space-y-4 px-4">
+        <div className="space-y-4 px-4 pb-4">
             <h3 className="text-sm font-bold text-gray-400 tracking-wider uppercase">
                 TIPO DE PROPIEDAD
             </h3>

@@ -9,6 +9,7 @@ import BathroomsFilter from './BathroomsFilter';
 import AntiquityFilter from './AntiquityFilter';
 import FilterChips from './FilterChips';
 import PropertyTypeFilter from './PropertyTypeFilter';
+import { getPropertyTypes } from '../../services/api';
 
 const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [filters, setFilters] = useState({
@@ -31,6 +32,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         antiquity: null
     });
 
+    const [propertyTypeLabels, setPropertyTypeLabels] = useState({});
     const [showPropertyTypeDrawer, setShowPropertyTypeDrawer] = useState(false);
     const [showPriceRangeDrawer, setShowPriceRangeDrawer] = useState(false);
     const [showLocationDrawer, setShowLocationDrawer] = useState(false);
@@ -39,6 +41,26 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [showRoomsDrawer, setShowRoomsDrawer] = useState(false);
     const [showBathroomsDrawer, setShowBathroomsDrawer] = useState(false);
     const [showAntiquityDrawer, setShowAntiquityDrawer] = useState(false);
+
+    // Cargar tipos de propiedad para mostrar etiquetas correctas
+    useEffect(() => {
+        const fetchPropertyTypes = async () => {
+            try {
+                const response = await getPropertyTypes();
+                if (response.data && response.data.length > 0) {
+                    const typeMap = {};
+                    response.data.forEach(type => {
+                        typeMap[type.id] = type.name;
+                    });
+                    setPropertyTypeLabels(typeMap);
+                }
+            } catch (error) {
+                console.error('Error al cargar tipos de propiedad:', error);
+            }
+        };
+        
+        fetchPropertyTypes();
+    }, []);
 
     // Inicializar filtros con los valores iniciales
     useEffect(() => {
@@ -150,8 +172,10 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                         <span className="text-gray-400 dark:text-gray-400 mr-2">
                             {Array.isArray(filters.propertyType) ? 
                                 (filters.propertyType.includes('all') ? 'Todas' : 
-                                 filters.propertyType.length > 1 ? 'Múltiples' : filters.propertyType[0]) : 
-                                (filters.propertyType === 'all' ? 'Todas' : filters.propertyType)}
+                                 filters.propertyType.length > 1 ? 'Múltiples' : 
+                                 propertyTypeLabels[filters.propertyType[0]] || filters.propertyType[0]) : 
+                                (filters.propertyType === 'all' ? 'Todas' : 
+                                 propertyTypeLabels[filters.propertyType] || filters.propertyType)}
                         </span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -318,7 +342,6 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                         initialValue={filters.propertyType}
                         onChange={(value) => {
                             setFilters(prev => ({ ...prev, propertyType: value }));
-                            setShowPropertyTypeDrawer(false);
                         }}
                     />
                 }
