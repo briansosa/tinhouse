@@ -11,48 +11,70 @@ export default function Home({ setShowNavBar }) {
   const [globalFilters, setGlobalFilters] = useState(null);
   const isInitialMount = useRef(true);
   const activeRequest = useRef(null);
+  const initialLoadDone = useRef(false);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    // Cargar los filtros globales del localStorage
-    const savedFilters = localStorage.getItem('globalFilters');
-    if (savedFilters) {
-      try {
-        const parsedFilters = JSON.parse(savedFilters);
-        console.log("Filtros cargados del localStorage:", parsedFilters);
-        setGlobalFilters(parsedFilters);
-        // No cargar propiedades aquí, se hará en el siguiente useEffect
-      } catch (error) {
-        console.error("Error al parsear filtros:", error);
-        // Si hay error, cargar sin filtros
-        loadProperties(null);
+    const initialize = () => {
+      // Cargar los filtros globales del localStorage
+      const savedFilters = localStorage.getItem('globalFilters');
+      
+      if (savedFilters) {
+        try {
+          const parsedFilters = JSON.parse(savedFilters);
+          setGlobalFilters(parsedFilters);
+          
+          if (isMounted.current) {
+            loadProperties(parsedFilters);
+          }
+    
+          return () => clearTimeout(timeoutId);
+        } catch (error) {
+          console.error("Error al parsear filtros:", error);
+          
+          if (isMounted.current) {
+            loadProperties(null);
+          }
+        
+          return () => clearTimeout(timeoutId);
+        }
+      } else {
+        if (isMounted.current) {
+          console.log("Cargando propiedades sin filtros después de delay");
+          loadProperties(null);
+        }
+        
+        return () => clearTimeout(timeoutId);
       }
-    } else {
-      // Solo cargar propiedades si no hay filtros guardados
-      loadProperties(null);
-    }
+    };
+    
+    // Marcar componente como montado
+    isMounted.current = true;
+    
+    // Inicializar
+    initialize();
 
     // Limpiar al desmontar
     return () => {
+      isMounted.current = false;
+      
       if (activeRequest.current) {
-        activeRequest.current.cancel();
+        activeRequest.current.cancel("Componente desmontado");
+        activeRequest.current = null;
       }
     };
   }, []);
 
   // Efecto para recargar propiedades cuando cambien los filtros globales
   useEffect(() => {
-    // Evitar la carga en el montaje inicial si ya hay filtros
+    // Evitar la carga en el montaje inicial
     if (isInitialMount.current) {
       isInitialMount.current = false;
-      if (globalFilters) {
-        console.log("Cargando propiedades con filtros iniciales:", globalFilters);
-        loadProperties(globalFilters);
-      }
       return;
     }
-
-    if (globalFilters) {
-      console.log("Filtros actualizados, recargando propiedades:", globalFilters);
+    
+    // Solo recargar si ya se hizo la carga inicial y hay cambios en los filtros
+    if (initialLoadDone.current && globalFilters) {
       loadProperties(globalFilters);
     }
   }, [globalFilters]);
@@ -73,32 +95,60 @@ export default function Home({ setShowNavBar }) {
   }, []);
 
   const loadProperties = async (filters) => {
+    if (!isMounted.current) {
+      return;
+    }
+    
     setLoading(true);
     
     // Cancelar cualquier solicitud activa
     if (activeRequest.current) {
-      activeRequest.current.cancel();
+      activeRequest.current.cancel("Cancelada por nueva petición");
+      activeRequest.current = null;
     }
     
     try {
-      console.log("Cargando propiedades con filtros:", filters);
-      const source = axios.CancelToken.source(); // Usar axios directamente
+      // Crear un nuevo token de cancelación
+      const source = axios.CancelToken.source();
       activeRequest.current = source;
       
       const response = await getUnratedProperties(filters, source.token);
-      console.log("Respuesta recibida:", response.data);
       
-      // Solo actualizar si esta es la solicitud más reciente
-      if (activeRequest.current === source) {
-        setProperties(response.data.properties || []);
-        activeRequest.current = null;
+      // Si el componente ya no está montado, no actualizar el estado
+      if (!isMounted.current) {
+        return;
       }
+      
+      // Verificar si esta petición sigue siendo la activa
+      if (activeRequest.current === source) {
+        if (response.data && Array.isArray(response.data.properties)) {
+          setProperties(response.data.properties);
+        } else {
+          console.warn("Formato de respuesta inesperado:", response.data);
+          setProperties([]);
+        }
+        // Limpiar la petición activa
+        activeRequest.current = null;
+      } 
     } catch (error) {
+      // Si el componente ya no está montado, no actualizar el estado
+      if (!isMounted.current) {
+        return;
+      }
+      
       if (!axios.isCancel(error)) {
-        console.error('Error fetching properties:', error);
+        console.error("Error al cargar propiedades:", error);
+        // Solo actualizar el estado si no hay otra petición en curso
+        if (!activeRequest.current || activeRequest.current.token === error.config?.cancelToken) {
+          setProperties([]);
+        }
       }
     } finally {
-      setLoading(false);
+      // Solo actualizar el estado de carga si el componente sigue montado
+      // y si esta era la última petición
+      if (isMounted.current && (!activeRequest.current || activeRequest.current === null)) {
+        setLoading(false);
+      }
     }
   };
 

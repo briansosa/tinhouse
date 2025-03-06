@@ -1,25 +1,47 @@
 import axios from 'axios';
 
+// Crear una instancia de axios con configuración personalizada
 const api = axios.create({
-  // baseURL: 'http://192.168.0.190:8080/api',
-  baseURL: 'http://localhost:8080/api',
+  //baseURL: 'http://localhost:8080/api'
+  baseURL: 'http://192.168.0.190:8080/api',
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
 export const getUnratedProperties = (filters = null, cancelToken = null) => {
-  const config = {};
+  const config = {
+    headers: {
+      'X-Request-ID': `unrated-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
+    }
+  };
   
   if (cancelToken) {
     config.cancelToken = cancelToken;
   }
   
+  const endpoint = '/properties/unrated';
+  
   if (filters) {
     config.params = convertFilters(filters);
-    return api.get('/properties/unrated', config);
   }
-  return api.get('/properties/unrated', config);
+  
+  return api.get(endpoint, config)
+    .then(response => {
+      return response;
+    })
+    .catch(error => {
+      if (axios.isCancel(error)) {
+        console.log(`API: Petición a ${endpoint} cancelada`, {
+          requestId: config.headers['X-Request-ID']
+        });
+      } else {
+        console.error(`API: Error en petición a ${endpoint}:`, error, {
+          requestId: config.headers['X-Request-ID']
+        });
+      }
+      throw error;
+    });
 };
 
 export const getLikedProperties = (filters = null, cancelToken = null) => {

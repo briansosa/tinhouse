@@ -30,11 +30,11 @@ func main() {
 
 	// Basic CORS
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "http://*:5173"}, // URL de desarrollo de Vite
+		AllowedOrigins:   []string{"*"}, // Permitir cualquier origen
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token", "X-Requested-With", "X-Request-ID"},
 		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
+		AllowCredentials: false, // Cambiar a false para evitar problemas con '*'
 		MaxAge:           300,
 	}))
 
@@ -44,13 +44,14 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// Middleware CORS
+	// Middleware CORS adicional para asegurar que las cabeceras se establezcan correctamente
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, X-Request-ID")
 
+			// Manejar solicitudes preflight OPTIONS
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusOK)
 				return
