@@ -202,6 +202,11 @@ const convertFilters = (filters) => {
     backendFilters.disposition = filters.disposition.join(',');
   }
 
+  // Convertir orientación
+  if (filters.orientation && filters.orientation.length > 0) {
+    backendFilters.orientation = filters.orientation.join(',');
+  }
+
   return backendFilters;
 };
 

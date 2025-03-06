@@ -8,6 +8,7 @@ import RoomsFilter from './RoomsFilter';
 import BathroomsFilter from './BathroomsFilter';
 import AntiquityFilter from './AntiquityFilter';
 import DispositionFilter from './DispositionFilter';
+import OrientationFilter from './OrientationFilter';
 import FilterChips from './FilterChips';
 import PropertyTypeFilter from './PropertyTypeFilter';
 import { getPropertyTypes } from '../../services/api';
@@ -34,7 +35,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         rooms: null,
         bathrooms: null,
         antiquity: null,
-        disposition: []
+        disposition: [],
+        orientation: []
     });
 
     const [propertyTypeLabels, setPropertyTypeLabels] = useState({});
@@ -47,6 +49,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [showBathroomsDrawer, setShowBathroomsDrawer] = useState(false);
     const [showAntiquityDrawer, setShowAntiquityDrawer] = useState(false);
     const [showDispositionDrawer, setShowDispositionDrawer] = useState(false);
+    const [showOrientationDrawer, setShowOrientationDrawer] = useState(false);
 
     // Cargar tipos de propiedad para mostrar etiquetas correctas
     useEffect(() => {
@@ -170,7 +173,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             rooms: null,
             bathrooms: null,
             antiquity: null,
-            disposition: []
+            disposition: [],
+            orientation: []
         });
     };
 
@@ -191,7 +195,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             filters.rooms !== null ||
             filters.bathrooms !== null ||
             filters.antiquity !== null ||
-            (filters.disposition && filters.disposition.length > 0)
+            (filters.disposition && filters.disposition.length > 0) ||
+            (filters.orientation && filters.orientation.length > 0)
         );
     };
 
@@ -351,6 +356,20 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                     <span className="text-gray-200 dark:text-gray-200">Disposición</span>
                     <div className="flex items-center">
                         <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.disposition && filters.disposition.length ? `${filters.disposition.length} seleccionados` : 'Todas'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {/* Orientación */}
+                <button 
+                    onClick={() => setShowOrientationDrawer(true)}
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-200 dark:text-gray-200">Orientación</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.orientation && filters.orientation.length ? `${filters.orientation.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -536,6 +555,21 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                         onChange={(values) => setFilters(prev => ({
                             ...prev,
                             disposition: values
+                        }))}
+                    />
+                }
+            />
+
+            <FilterDrawer 
+                isOpen={showOrientationDrawer}
+                onClose={() => setShowOrientationDrawer(false)}
+                title="ORIENTACIÓN"
+                customContent={
+                    <OrientationFilter
+                        initialValues={filters.orientation}
+                        onChange={(values) => setFilters(prev => ({
+                            ...prev,
+                            orientation: values
                         }))}
                     />
                 }

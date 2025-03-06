@@ -124,6 +124,7 @@ type PropertyFilter struct {
 	Bathrooms         *int     `json:"bathrooms"`
 	Antiquity         *int     `json:"antiquity"`
 	Disposition       []string `json:"disposition"` // Disposición de la propiedad
+	Orientation       []string `json:"orientation"` // Orientación de la propiedad
 	ShowOnlyWithNotes bool     `json:"show_only_with_notes"`
 	ShowOnlyFavorites bool     `json:"show_only_favorites"`
 }

@@ -675,6 +675,11 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		filter.Disposition = strings.Split(disposition, ",")
 	}
 
+	// Orientación
+	if orientation := r.URL.Query().Get("orientation"); orientation != "" {
+		filter.Orientation = strings.Split(orientation, ",")
+	}
+
 	// Solo con notas
 	if showOnlyWithNotes := r.URL.Query().Get("show_only_with_notes"); showOnlyWithNotes == "true" {
 		filter.ShowOnlyWithNotes = true
