@@ -3,6 +3,7 @@ package tokko
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -262,54 +263,11 @@ func (s *TokkoScraper) GetPropertyDetails(ctx context.Context, url string) (*mod
 					return '';
 				}
 
-				// Extraer datos básicos
-				const tipoPropiedad = document.querySelector('#ficha_detalle_cuerpo .ficha_detalle_item:first-child')?.textContent.split('Tipo de Propiedad')[1]?.trim() || '';
-				const ubicacion = document.querySelector('#ficha_detalle_cuerpo .ficha_detalle_item:nth-child(2)')?.textContent.split('Ubicación')[1]?.trim() || '';
-				
-				// Extraer tipo de operación
-				let operacion = '';
-				
-				// Método 1: Buscar en el título de la página
-				const pageTitle = document.title || '';
-				if (pageTitle.toLowerCase().includes('venta')) {
-					operacion = 'Venta';
-				} else if (pageTitle.toLowerCase().includes('alquiler temp')) {
-					operacion = 'Alquiler Temporario';
-				} else if (pageTitle.toLowerCase().includes('alquiler')) {
-					operacion = 'Alquiler';
-				}
-				
-				// Método 2: Buscar en la URL
-				if (!operacion) {
-					const currentUrl = window.location.href;
-					if (currentUrl.toLowerCase().includes('venta')) {
-						operacion = 'Venta';
-					} else if (currentUrl.toLowerCase().includes('alquiler-temp')) {
-						operacion = 'Alquiler Temporario';
-					} else if (currentUrl.toLowerCase().includes('alquiler')) {
-						operacion = 'Alquiler';
-					}
-				}
-				
-				// Método 3: Buscar en el contenido de la página
-				if (!operacion) {
-					const breadcrumbs = document.querySelector('.breadcrumb');
-					if (breadcrumbs) {
-						const breadcrumbText = breadcrumbs.textContent.toLowerCase();
-						if (breadcrumbText.includes('venta')) {
-							operacion = 'Venta';
-						} else if (breadcrumbText.includes('alquiler temp')) {
-							operacion = 'Alquiler Temporario';
-						} else if (breadcrumbText.includes('alquiler')) {
-							operacion = 'Alquiler';
-						}
-					}
-				}
-				
 				// Extraer información básica
 				const dormitorios = extractNumber(findValue('#lista_informacion_basica', 'Dormitorios'));
 				const banios = extractNumber(findValue('#lista_informacion_basica', 'Baños'));
-				const antiguedad = findValue('#lista_informacion_basica', 'Antigüedad');
+				const antiguedadTexto = findValue('#lista_informacion_basica', 'Antigüedad');
+				const antiguedad = parseAntiguedad(antiguedadTexto);
 				const ambientes = extractNumber(findValue('#lista_informacion_basica', 'Ambientes'));
 				const plantas = extractNumber(findValue('#lista_informacion_basica', 'Plantas'));
 				const cocheras = extractNumber(findValue('#lista_informacion_basica', 'Cocheras'));
@@ -959,4 +917,69 @@ func (s *TokkoScraper) GetPropertyDetails(ctx context.Context, url string) (*mod
 
 	fmt.Printf("✓ Extracción completada: %+v\n", details)
 	return &details, nil
+}
+
+// parseAntiguedad convierte el texto de antigüedad a un valor numérico
+// 0 = A estrenar
+// 1-100 = Años de antigüedad
+// Si no se puede determinar, devuelve nil
+func parseAntiguedad(texto string) *int {
+	if texto == "" {
+		return nil
+	}
+
+	texto = strings.ToLower(texto)
+
+	// Caso: A estrenar
+	if strings.Contains(texto, "estrenar") || strings.Contains(texto, "nuevo") {
+		value := 0
+		return &value
+	}
+
+	// Caso: Más de X años
+	if strings.Contains(texto, "más de") || strings.Contains(texto, "mayor a") {
+		parts := strings.Split(texto, " ")
+		for i, part := range parts {
+			if i > 0 && (parts[i-1] == "más" || parts[i-1] == "mayor") {
+				num, err := strconv.Atoi(part)
+				if err == nil {
+					return &num
+				}
+			}
+		}
+	}
+
+	// Caso: Hasta X años
+	if strings.Contains(texto, "hasta") || strings.Contains(texto, "menos de") {
+		parts := strings.Split(texto, " ")
+		for i, part := range parts {
+			if i > 0 && (parts[i-1] == "hasta" || parts[i-1] == "menos") {
+				num, err := strconv.Atoi(part)
+				if err == nil {
+					return &num
+				}
+			}
+		}
+	}
+
+	// Caso: X años
+	if strings.Contains(texto, "año") {
+		parts := strings.Split(texto, " ")
+		for i, part := range parts {
+			if i < len(parts)-1 && strings.Contains(parts[i+1], "año") {
+				num, err := strconv.Atoi(part)
+				if err == nil {
+					return &num
+				}
+			}
+		}
+	}
+
+	// Caso: Antiguo/Antigua (asumimos más de 30 años)
+	if strings.Contains(texto, "antiguo") || strings.Contains(texto, "antigua") {
+		value := 100
+		return &value
+	}
+
+	return nil
 }

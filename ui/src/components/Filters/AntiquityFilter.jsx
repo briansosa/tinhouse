@@ -19,10 +19,13 @@ const AntiquityFilter = ({ onChange, initialValue = null }) => {
     };
 
     return (
-        <div className="space-y-4 px-4">
-            <h3 className="text-sm font-bold text-gray-400 tracking-wider uppercase">
-                ANTIGÜEDAD
-            </h3>
+        <div className="space-y-4 px-4 pb-4">
+            <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-gray-400 tracking-wider uppercase">
+                    ANTIGÜEDAD
+                </h3>
+            </div>
+            
             <div className="grid grid-cols-2 gap-2">
                 {options.map(option => (
                     <button

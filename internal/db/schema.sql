@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS propiedades (
     ubicacion TEXT,
     dormitorios INTEGER,
     banios INTEGER,
-    antiguedad TEXT,
+    antiguedad INTEGER,
     superficie_cubierta FLOAT,
     superficie_total FLOAT,
     superficie_terreno FLOAT,

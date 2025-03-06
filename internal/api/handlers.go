@@ -52,7 +52,7 @@ type Details struct {
 	Garages   *int     `json:"garages,omitempty"`
 	Status    *string  `json:"status,omitempty"`
 	Expenses  *float64 `json:"expenses,omitempty"`
-	Age       *string  `json:"age,omitempty"`
+	Age       *int     `json:"age,omitempty"`
 	FrontSize *float64 `json:"front_size,omitempty"`
 	BackSize  *float64 `json:"back_size,omitempty"`
 	Latitude  *float64 `json:"latitude,omitempty"`
@@ -603,9 +603,6 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		filter.ShowOnlyWithNotes = true
 	}
 
-	// Imprimir filtro completo para depuración
-	fmt.Printf("Filtro completo: %+v\n", filter)
-
 	return filter, nil
 }
 
@@ -650,8 +647,6 @@ func (h *Handler) GetAvailableFeatures(w http.ResponseWriter, r *http.Request) {
 
 // GetPropertyTypes devuelve todos los tipos de propiedad disponibles
 func (h *Handler) GetPropertyTypes(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Recibida solicitud para obtener tipos de propiedad")
-
 	types, err := h.db.GetAllPropertyTypes()
 	if err != nil {
 		fmt.Printf("Error al obtener tipos de propiedad: %v\n", err)
@@ -659,7 +654,6 @@ func (h *Handler) GetPropertyTypes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("Tipos de propiedad encontrados: %d\n", len(types))
 	for i, t := range types {
 		fmt.Printf("  %d. ID: %d, Code: %s, Name: %s\n", i+1, t.ID, t.Code, t.Name)
 	}

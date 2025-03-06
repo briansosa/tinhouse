@@ -647,8 +647,6 @@ func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) 
 
 	baseQuery += " ORDER BY p.created_at DESC"
 
-	fmt.Printf("Query final: %s\nArgs: %v\n", baseQuery, args)
-
 	rows, err := db.Query(baseQuery, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error consultando propiedades sin calificar: %v", err)
@@ -656,7 +654,6 @@ func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) 
 	defer rows.Close()
 
 	propiedades, err := scanPropiedades(rows)
-	fmt.Printf("Propiedades encontradas: %d\n", len(propiedades))
 	return propiedades, err
 }
 
@@ -739,7 +736,6 @@ func scanPropiedades(rows *sql.Rows) ([]Propiedad, error) {
 		return nil, fmt.Errorf("error iterando propiedades: %v", err)
 	}
 
-	fmt.Printf("Total de propiedades escaneadas: %d\n", count)
 	return propiedades, nil
 }
 
@@ -840,18 +836,30 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 
 	// Filtro por antigüedad
 	if filter.Antiquity != nil {
-		// Manejo más preciso de la antigüedad
+		// Ahora que antiguedad es un campo numérico, podemos usar operadores de comparación directos
 		switch *filter.Antiquity {
 		case 0:
 			// A estrenar
-			conditions = append(conditions, "(p.antiguedad LIKE '%estrenar%' OR p.antiguedad LIKE '%a estrenar%' OR p.antiguedad LIKE '%nuevo%')")
+			conditions = append(conditions, "p.antiguedad = 0")
+		case 5:
+			// Hasta 5 años
+			conditions = append(conditions, "p.antiguedad > 0 AND p.antiguedad <= 5")
+		case 10:
+			// Hasta 10 años
+			conditions = append(conditions, "p.antiguedad > 0 AND p.antiguedad <= 10")
+		case 20:
+			// Hasta 20 años
+			conditions = append(conditions, "p.antiguedad > 0 AND p.antiguedad <= 20")
+		case 30:
+			// Hasta 30 años
+			conditions = append(conditions, "p.antiguedad > 0 AND p.antiguedad <= 30")
 		case 100:
 			// Más de 30 años
-			conditions = append(conditions, "(CAST(REGEXP_REPLACE(p.antiguedad, '[^0-9]', '', 'g') AS INTEGER) > 30 OR p.antiguedad LIKE '%antiguo%' OR p.antiguedad LIKE '%antigua%')")
+			conditions = append(conditions, "p.antiguedad > 30")
 		default:
-			// Hasta X años
-			conditions = append(conditions, "(CAST(REGEXP_REPLACE(p.antiguedad, '[^0-9]', '', 'g') AS INTEGER) <= ? OR p.antiguedad LIKE ?)")
-			args = append(args, *filter.Antiquity, fmt.Sprintf("%%hasta %d año%%", *filter.Antiquity))
+			// Caso genérico
+			conditions = append(conditions, "p.antiguedad = ?")
+			args = append(args, *filter.Antiquity)
 		}
 	}
 
@@ -1203,11 +1211,8 @@ func (db *DB) GetAllFeatures() ([]PropertyFeature, error) {
 
 // GetAllPropertyTypes obtiene todos los tipos de propiedad disponibles
 func (db *DB) GetAllPropertyTypes() ([]PropertyType, error) {
-	fmt.Println("Ejecutando consulta para obtener todos los tipos de propiedad")
-
 	var types []PropertyType
 	query := `SELECT id, code, name, created_at FROM property_types ORDER BY name`
-	fmt.Println("Query:", query)
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -1230,7 +1235,6 @@ func (db *DB) GetAllPropertyTypes() ([]PropertyType, error) {
 		return nil, fmt.Errorf("error al iterar tipos de propiedad: %w", err)
 	}
 
-	fmt.Printf("Total de tipos de propiedad encontrados: %d\n", len(types))
 	return types, nil
 }
 

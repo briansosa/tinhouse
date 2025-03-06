@@ -36,7 +36,7 @@ type PropertyDetails struct {
 	Operacion          string // Tipo de operación: venta, alquiler, etc.
 	Dormitorios        int
 	Banios             int
-	Antiguedad         string
+	Antiguedad         int
 	SuperficieCubierta float64
 	SuperficieTotal    float64
 	SuperficieTerreno  float64

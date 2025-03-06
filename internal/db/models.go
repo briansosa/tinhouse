@@ -48,7 +48,7 @@ type Propiedad struct {
 	Ubicacion          *string  `db:"ubicacion"`
 	Dormitorios        *int     `db:"dormitorios"`
 	Banios             *int     `db:"banios"`
-	Antiguedad         *string  `db:"antiguedad"`
+	Antiguedad         *int     `db:"antiguedad"`
 	SuperficieCubierta *float64 `db:"superficie_cubierta"`
 	SuperficieTotal    *float64 `db:"superficie_total"`
 	SuperficieTerreno  *float64 `db:"superficie_terreno"`
