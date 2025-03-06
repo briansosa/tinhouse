@@ -460,9 +460,6 @@ func parsePropertyFilter(r *http.Request) (*db.PropertyFilter, error) {
 func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 	filter := &db.PropertyFilter{}
 
-	// Imprimir todos los query params para depuración
-	fmt.Printf("Query params recibidos: %+v\n", r.URL.Query())
-
 	// Tipo de propiedad (por código)
 	if propertyType := r.URL.Query().Get("property_type"); propertyType != "" {
 		filter.PropertyType = propertyType

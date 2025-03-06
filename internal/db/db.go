@@ -622,8 +622,6 @@ func (db *DB) GetInmobiliariaByID(id int64) (*Inmobiliaria, error) {
 
 // GetUnratedProperties retorna las propiedades sin calificar
 func (db *DB) GetUnratedProperties(filter *PropertyFilter) ([]Propiedad, error) {
-	fmt.Printf("GetUnratedProperties con filtro: %+v\n", filter)
-
 	baseQuery := `
 		SELECT 
 			p.id, p.inmobiliaria_id, p.codigo, p.titulo, p.precio, p.direccion, 
@@ -751,8 +749,6 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		return nil, nil
 	}
 
-	fmt.Printf("Construyendo condiciones para filtro: %+v\n", filter)
-
 	var conditions []string
 	var args []interface{}
 
@@ -790,22 +786,16 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 
 	// Filtro por precio
 	if filter.PriceMin != nil || filter.PriceMax != nil {
-		// Extraer el valor numérico del precio
-		priceExtract := `CAST(REPLACE(REPLACE(REPLACE(p.precio, '$', ''), '.', ''), ',', '') AS NUMERIC)`
-
-		// Ajustar para moneda
+		// Primero filtramos por la moneda seleccionada
 		if filter.Currency == "USD" {
-			priceExtract = `CASE 
-				WHEN p.precio LIKE '%USD%' OR p.precio LIKE '%U$S%' THEN CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(p.precio, 'USD', ''), 'U$S', ''), '$', ''), '.', ''), ',', '') AS NUMERIC)
-				ELSE CAST(REPLACE(REPLACE(REPLACE(p.precio, '$', ''), '.', ''), ',', '') AS NUMERIC) / 1000
-			END`
+			conditions = append(conditions, "(p.precio LIKE '%USD%' OR p.precio LIKE '%U$S%' OR p.moneda = 'USD')")
 		} else {
-			// ARS
-			priceExtract = `CASE 
-				WHEN p.precio LIKE '%USD%' OR p.precio LIKE '%U$S%' THEN CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(p.precio, 'USD', ''), 'U$S', ''), '$', ''), '.', ''), ',', '') AS NUMERIC) * 1000
-				ELSE CAST(REPLACE(REPLACE(REPLACE(p.precio, '$', ''), '.', ''), ',', '') AS NUMERIC)
-			END`
+			// Si es ARS, excluimos las propiedades en USD
+			conditions = append(conditions, "(p.precio NOT LIKE '%USD%' AND p.precio NOT LIKE '%U$S%' AND (p.moneda IS NULL OR p.moneda = 'ARS'))")
 		}
+
+		// Extraer el valor numérico del precio
+		priceExtract := `CAST(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(p.precio, 'USD', ''), 'U$S', ''), '$', ''), '.', ''), ',', '') AS NUMERIC)`
 
 		if filter.PriceMin != nil {
 			conditions = append(conditions, fmt.Sprintf("%s >= ?", priceExtract))
@@ -815,6 +805,13 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		if filter.PriceMax != nil {
 			conditions = append(conditions, fmt.Sprintf("%s <= ?", priceExtract))
 			args = append(args, *filter.PriceMax)
+		}
+	} else if filter.Currency != "" {
+		// Si solo se especifica la moneda sin rango de precios
+		if filter.Currency == "USD" {
+			conditions = append(conditions, "(p.precio LIKE '%USD%' OR p.precio LIKE '%U$S%' OR p.moneda = 'USD')")
+		} else {
+			conditions = append(conditions, "(p.precio NOT LIKE '%USD%' AND p.precio NOT LIKE '%U$S%' AND (p.moneda IS NULL OR p.moneda = 'ARS'))")
 		}
 	}
 
@@ -904,7 +901,6 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		)`)
 	}
 
-	fmt.Printf("Condiciones finales: %v\nArgs: %v\n", conditions, args)
 	return conditions, args
 }
 

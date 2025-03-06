@@ -1,16 +1,40 @@
 import { useState } from 'react';
 
-const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } }) => {
-    const [range, setRange] = useState(initialRange);
-    const [currency, setCurrency] = useState('ARS'); // 'ARS' o 'USD'
-    const maxPrice = currency === 'ARS' ? 500000000 : 500000; // Ajustamos máximo según moneda
+const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null, currency: 'ARS' } }) => {
+    const [range, setRange] = useState({
+        min: initialRange.min,
+        max: initialRange.max
+    });
+    const [currency, setCurrency] = useState(initialRange.currency || 'ARS'); // 'ARS' o 'USD'
+    
+    // Valores máximos según la moneda
+    const maxPrices = {
+        'ARS': 500000000, // 500 millones de pesos
+        'USD': 2000000    // 2 millones de dólares
+    };
+    
+    // Valores predefinidos para facilitar la selección
+    const presetValues = {
+        'ARS': [
+            { label: '$10M', value: 10000000 },
+            { label: '$50M', value: 50000000 },
+            { label: '$100M', value: 100000000 },
+            { label: '$200M', value: 200000000 }
+        ],
+        'USD': [
+            { label: 'U$S 50K', value: 50000 },
+            { label: 'U$S 100K', value: 100000 },
+            { label: 'U$S 200K', value: 200000 },
+            { label: 'U$S 500K', value: 500000 }
+        ]
+    };
 
     const handleSliderChange = (type) => (e) => {
         const value = parseInt(e.target.value);
         let newRange = { ...range };
 
         if (type === 'min') {
-            newRange.min = Math.min(value, (newRange.max || maxPrice) - 1);
+            newRange.min = Math.min(value, (newRange.max || maxPrices[currency]) - 1);
         } else {
             newRange.max = Math.max(value, (newRange.min || 0) + 1);
         }
@@ -28,6 +52,12 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
         onChange({ ...newRange, currency: newCurrency });
     };
 
+    const handlePresetClick = (value) => {
+        const newRange = { ...range, max: value };
+        setRange(newRange);
+        onChange({ ...newRange, currency });
+    };
+
     const formatPrice = (price) => {
         if (price === null) return 'Sin límite';
         return currency === 'ARS' 
@@ -37,18 +67,42 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
 
     return (
         <div className="p-4 space-y-6">
-            {/* Selector de moneda */}
-            <div className="flex justify-center space-x-2">
-                <button 
-                    onClick={() => handleCurrencyToggle()}
-                    className={`px-4 py-2 rounded-full text-sm font-medium ${
-                        currency === 'ARS' 
-                            ? 'bg-blue-500 text-white' 
-                            : 'bg-gray-800 dark:bg-gray-800 text-gray-300 dark:text-gray-300'
-                    }`}
-                >
-                    {currency === 'ARS' ? 'ARS' : 'USD'}
-                </button>
+            {/* Selector de moneda con explicación */}
+            <div className="space-y-2">
+                <div className="flex justify-center space-x-2">
+                    <button 
+                        onClick={() => handleCurrencyToggle()}
+                        className={`px-4 py-2 rounded-full text-sm font-medium ${
+                            currency === 'ARS' 
+                                ? 'bg-blue-500 text-white' 
+                                : 'bg-gray-800 dark:bg-gray-800 text-gray-300 dark:text-gray-300'
+                        }`}
+                    >
+                        {currency === 'ARS' ? 'ARS' : 'USD'}
+                    </button>
+                </div>
+                <p className="text-xs text-center text-gray-400">
+                    {currency === 'ARS' 
+                        ? 'Mostrando solo propiedades en pesos argentinos' 
+                        : 'Mostrando solo propiedades en dólares'}
+                </p>
+            </div>
+
+            {/* Valores predefinidos */}
+            <div className="grid grid-cols-4 gap-2">
+                {presetValues[currency].map((preset) => (
+                    <button
+                        key={preset.value}
+                        onClick={() => handlePresetClick(preset.value)}
+                        className={`p-2 rounded-lg text-sm font-medium transition-all ${
+                            range.max === preset.value
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-800 dark:bg-gray-800 text-gray-300 dark:text-gray-300'
+                        }`}
+                    >
+                        {preset.label}
+                    </button>
+                ))}
             </div>
 
             {/* Inputs de rango */}
@@ -88,7 +142,7 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
             {/* Valores seleccionados */}
             <div className="flex items-center justify-between text-xl">
                 <span className="text-white font-medium">{formatPrice(range.min || 0)}</span>
-                <span className="text-white font-medium">{formatPrice(range.max || maxPrice)}</span>
+                <span className="text-white font-medium">{formatPrice(range.max || maxPrices[currency])}</span>
             </div>
 
             {/* Contenedor de los sliders */}
@@ -100,8 +154,8 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
                 <div 
                     className="absolute h-full bg-blue-500 rounded-full"
                     style={{
-                        left: `${((range.min || 0) / maxPrice) * 100}%`,
-                        right: `${100 - ((range.max || maxPrice) / maxPrice) * 100}%`
+                        left: `${((range.min || 0) / maxPrices[currency]) * 100}%`,
+                        right: `${100 - ((range.max || maxPrices[currency]) / maxPrices[currency]) * 100}%`
                     }}
                 />
 
@@ -110,8 +164,8 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
                     <input
                         type="range"
                         min="0"
-                        max={maxPrice}
-                        value={range.max || maxPrice}
+                        max={maxPrices[currency]}
+                        value={range.max || maxPrices[currency]}
                         onChange={handleSliderChange('max')}
                         className="w-full h-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-lg"
                     />
@@ -122,7 +176,7 @@ const PriceRangeFilter = ({ onChange, initialRange = { min: null, max: null } })
                     <input
                         type="range"
                         min="0"
-                        max={maxPrice}
+                        max={maxPrices[currency]}
                         value={range.min || 0}
                         onChange={handleSliderChange('min')}
                         className="w-full h-full appearance-none bg-transparent [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:w-6 [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:shadow-lg"
