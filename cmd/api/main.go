@@ -82,6 +82,9 @@ func main() {
 
 		// Ruta para obtener valores de listas
 		r.Get("/lists/{listName}", h.GetListValues)
+
+		// Ruta para obtener inmobiliarias
+		r.Get("/agencies", h.GetAgencies)
 	})
 
 	// Iniciar servidor

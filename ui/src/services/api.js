@@ -222,6 +222,11 @@ const convertFilters = (filters) => {
     backendFilters.situation = filters.situation.join(',');
   }
 
+  // Convertir inmobiliarias
+  if (filters.agencies && filters.agencies.length > 0) {
+    backendFilters.agencies = filters.agencies.join(',');
+  }
+
   return backendFilters;
 };
 
@@ -242,10 +247,28 @@ export const getPropertyTypes = () => {
 
 export const getListValues = (listName) => {
   return api.get(`/lists/${listName}`)
-    .then(response => response.data)
+    .then(response => {
+      return response.data;
+    })
     .catch(error => {
       console.error(`Error al obtener valores de la lista ${listName}:`, error);
       throw error;
+    });
+};
+
+// Función para obtener todas las inmobiliarias
+export const getAgencies = () => {
+  return api.get('/agencies')
+    .then(response => {
+      if (response && response.data) {
+        return response.data;
+      }
+      return [];
+    })
+    .catch(error => {
+      console.error('Error al obtener inmobiliarias:', error);
+      // Retornar un array vacío en caso de error para evitar errores en el componente
+      return [];
     });
 };
 

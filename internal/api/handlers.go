@@ -695,6 +695,22 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		filter.Situation = strings.Split(situation, ",")
 	}
 
+	// Inmobiliarias
+	if agencies := r.URL.Query().Get("agencies"); agencies != "" {
+		// Convertir los IDs de string a int64
+		agencyIDs := strings.Split(agencies, ",")
+		var agencyIDsInt []int64
+		for _, idStr := range agencyIDs {
+			id, err := strconv.ParseInt(idStr, 10, 64)
+			if err != nil {
+				fmt.Printf("Error al convertir ID de inmobiliaria '%s' a int64: %v\n", idStr, err)
+				continue
+			}
+			agencyIDsInt = append(agencyIDsInt, id)
+		}
+		filter.AgencyIDs = agencyIDsInt
+	}
+
 	// Solo con notas
 	if showOnlyWithNotes := r.URL.Query().Get("show_only_with_notes"); showOnlyWithNotes == "true" {
 		filter.ShowOnlyWithNotes = true
@@ -772,6 +788,26 @@ func (h *Handler) GetListValues(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(values)
+}
+
+// GetAgencies devuelve la lista de inmobiliarias
+func (h *Handler) GetAgencies(w http.ResponseWriter, r *http.Request) {
+	agencies, err := h.db.GetAllAgencies()
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error al obtener inmobiliarias: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Si no hay inmobiliarias, devolver un array vacío en lugar de null
+	if agencies == nil {
+		agencies = []db.Inmobiliaria{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	if err := json.NewEncoder(w).Encode(agencies); err != nil {
+		http.Error(w, fmt.Sprintf("Error al codificar respuesta: %v", err), http.StatusInternalServerError)
+	}
 }
 
 // getPropertyTypeCode obtiene el código del tipo de propiedad

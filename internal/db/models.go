@@ -128,6 +128,7 @@ type PropertyFilter struct {
 	Condition         []string `json:"condition"`      // Condición de la propiedad
 	OperationType     []string `json:"operation_type"` // Tipo de operación de la propiedad
 	Situation         []string `json:"situation"`      // Situación de la propiedad
+	AgencyIDs         []int64  `json:"agencies"`       // IDs de inmobiliarias
 	ShowOnlyWithNotes bool     `json:"show_only_with_notes"`
 	ShowOnlyFavorites bool     `json:"show_only_favorites"`
 }

@@ -1,4 +1,4 @@
-import { motion, AnimatePresence, useMotionValue } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 
 const FilterDrawer = ({ 
@@ -11,42 +11,35 @@ const FilterDrawer = ({
     customContent
 }) => {
     const contentRef = useRef(null);
-    const [contentHeight, setContentHeight] = useState(0);
-    const [windowHeight, setWindowHeight] = useState(0);
+    const [windowHeight, setWindowHeight] = useState(window.innerHeight);
 
-    // Calcular la altura del contenido y de la ventana cuando el drawer se abre
+    // Actualizar la altura de la ventana cuando cambia el tamaño
     useEffect(() => {
-        if (isOpen && contentRef.current) {
-            const updateHeights = () => {
-                const contentHeight = contentRef.current.scrollHeight;
-                const windowHeight = window.innerHeight;
-                setContentHeight(contentHeight);
-                setWindowHeight(windowHeight);
-            };
-            
-            updateHeights();
-            // Actualizar en caso de cambio de tamaño
-            window.addEventListener('resize', updateHeights);
-            return () => window.removeEventListener('resize', updateHeights);
-        }
-    }, [isOpen, options, customContent]);
+        const handleResize = () => {
+            setWindowHeight(window.innerHeight);
+        };
+        
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
-    // Calcular la altura máxima del drawer (70% de la pantalla o el contenido si es menor)
-    const drawerHeight = Math.min(contentHeight + 80, windowHeight * 0.7);
+    // Calcular la altura del drawer (50% de la pantalla por defecto)
+    // Esto asegura que el drawer siempre tenga una altura razonable
+    const drawerHeight = windowHeight * 0.5;
     
     return (
         <AnimatePresence>
             {isOpen && (
                 <motion.div 
-                    className="absolute inset-x-0 bottom-0 bg-gray-900 dark:bg-gray-900 rounded-t-2xl"
+                    className="fixed inset-x-0 bottom-0 bg-gray-900 dark:bg-gray-900 rounded-t-2xl"
                     initial={{ y: "100%" }}
                     animate={{ y: 0 }}
                     exit={{ y: "100%" }}
                     transition={{ type: "spring", damping: 25, stiffness: 200 }}
                     style={{ 
-                        zIndex: 10,
-                        height: drawerHeight > 0 ? `${drawerHeight}px` : 'auto',
-                        maxHeight: '70vh'
+                        zIndex: 50,
+                        height: `${drawerHeight}px`,
+                        maxHeight: '80vh'
                     }}
                 >
                     <div className="h-full flex flex-col">

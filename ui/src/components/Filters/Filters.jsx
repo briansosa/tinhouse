@@ -12,6 +12,7 @@ import OrientationFilter from './OrientationFilter';
 import ConditionFilter from './ConditionFilter';
 import OperationTypeFilter from './OperationTypeFilter';
 import SituationFilter from './SituationFilter';
+import AgencyFilter from './AgencyFilter';
 import FilterChips from './FilterChips';
 import PropertyTypeFilter from './PropertyTypeFilter';
 import { getPropertyTypes } from '../../services/api';
@@ -42,7 +43,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         orientation: [],
         condition: [],
         operationType: [],
-        situation: []
+        situation: [],
+        agencies: []
     });
 
     const [propertyTypeLabels, setPropertyTypeLabels] = useState({});
@@ -59,6 +61,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [showConditionDrawer, setShowConditionDrawer] = useState(false);
     const [showOperationTypeDrawer, setShowOperationTypeDrawer] = useState(false);
     const [showSituationDrawer, setShowSituationDrawer] = useState(false);
+    const [showAgencyDrawer, setShowAgencyDrawer] = useState(false);
 
     // Cargar tipos de propiedad para mostrar etiquetas correctas
     useEffect(() => {
@@ -186,7 +189,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             orientation: [],
             condition: [],
             operationType: [],
-            situation: []
+            situation: [],
+            agencies: []
         });
     };
 
@@ -211,7 +215,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             (filters.orientation && filters.orientation.length > 0) ||
             (filters.condition && filters.condition.length > 0) ||
             (filters.operationType && filters.operationType.length > 0) ||
-            (filters.situation && filters.situation.length > 0)
+            (filters.situation && filters.situation.length > 0) ||
+            (filters.agencies && filters.agencies.length > 0)
         );
     };
 
@@ -427,6 +432,20 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                     <span className="text-gray-200 dark:text-gray-200">Situación</span>
                     <div className="flex items-center">
                         <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.situation && filters.situation.length ? `${filters.situation.length} seleccionados` : 'Todas'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {/* Inmobiliaria */}
+                <button 
+                    onClick={() => setShowAgencyDrawer(true)}
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-200 dark:text-gray-200">Inmobiliaria</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.agencies && filters.agencies.length ? `${filters.agencies.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -672,6 +691,21 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                         onChange={(values) => setFilters(prev => ({
                             ...prev,
                             situation: values
+                        }))}
+                    />
+                }
+            />
+
+            <FilterDrawer 
+                isOpen={showAgencyDrawer}
+                onClose={() => setShowAgencyDrawer(false)}
+                title="INMOBILIARIA"
+                customContent={
+                    <AgencyFilter
+                        initialValues={filters.agencies}
+                        onChange={(values) => setFilters(prev => ({
+                            ...prev,
+                            agencies: values
                         }))}
                     />
                 }

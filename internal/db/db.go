@@ -1006,6 +1006,16 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		conditions = append(conditions, fmt.Sprintf("p.situacion IN (%s)", strings.Join(placeholders, ",")))
 	}
 
+	// Filtro por inmobiliarias
+	if filter.AgencyIDs != nil && len(filter.AgencyIDs) > 0 {
+		placeholders := make([]string, len(filter.AgencyIDs))
+		for i, agencyID := range filter.AgencyIDs {
+			placeholders[i] = "?"
+			args = append(args, agencyID)
+		}
+		conditions = append(conditions, fmt.Sprintf("p.inmobiliaria_id IN (%s)", strings.Join(placeholders, ",")))
+	}
+
 	return conditions, args
 }
 
@@ -1445,3 +1455,46 @@ func createDefaultListValues(listName string, values []string) []ListValue {
 }
 
 // PropertyFeatureRelation representa la relación entre una propiedad y una característica
+
+// GetAllAgencies obtiene todas las inmobiliarias
+func (db *DB) GetAllAgencies() ([]Inmobiliaria, error) {
+	query := `SELECT id, nombre, url, sistema, zona, rating, direccion, telefono, created_at, updated_at FROM inmobiliarias ORDER BY nombre`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error al consultar inmobiliarias: %v", err)
+	}
+	defer rows.Close()
+
+	var agencies []Inmobiliaria
+	for rows.Next() {
+		var agency Inmobiliaria
+		err := rows.Scan(
+			&agency.ID,
+			&agency.Nombre,
+			&agency.URL,
+			&agency.Sistema,
+			&agency.Zona,
+			&agency.Rating,
+			&agency.Direccion,
+			&agency.Telefono,
+			&agency.CreatedAt,
+			&agency.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("error al escanear inmobiliaria: %v", err)
+		}
+		agencies = append(agencies, agency)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error al iterar sobre inmobiliarias: %v", err)
+	}
+
+	// Si no hay inmobiliarias, devolver un slice vacío en lugar de nil
+	if agencies == nil {
+		agencies = []Inmobiliaria{}
+	}
+
+	return agencies, nil
+}

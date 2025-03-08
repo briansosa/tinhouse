@@ -17,25 +17,39 @@ const RoomsFilter = ({ onChange, initialValue = null, title = "Ambientes" }) => 
         onChange(newValue);
     };
 
+    const handleReset = () => {
+        setSelectedValue(null);
+        onChange(null);
+    };
+
     return (
-        <div className="space-y-4 px-4">
-            <h3 className="text-sm font-bold text-gray-400 tracking-wider uppercase">
-                {title}
-            </h3>
-            <div className="flex gap-2 overflow-x-auto pb-2">
-                {options.map(option => (
-                    <button
-                        key={option.value}
-                        onClick={() => handleSelect(option.value)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex-shrink-0 ${
-                            selectedValue === option.value
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-800 text-gray-300'
-                        }`}
-                    >
-                        {option.label}
-                    </button>
-                ))}
+        <div className="p-4 pb-16">
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-white font-semibold text-lg">{title}</h3>
+                <button
+                    onClick={handleReset}
+                    className="text-xs text-gray-400 hover:text-gray-300"
+                >
+                    Restablecer
+                </button>
+            </div>
+            
+            <div className="space-y-4 min-h-[200px]">
+                <div className="grid grid-cols-2 gap-3">
+                    {options.map(option => (
+                        <button
+                            key={option.value}
+                            onClick={() => handleSelect(option.value)}
+                            className={`p-3 rounded-lg text-base font-medium transition-all ${
+                                selectedValue === option.value
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-700 text-gray-300'
+                            }`}
+                        >
+                            {option.label}
+                        </button>
+                    ))}
+                </div>
             </div>
         </div>
     );

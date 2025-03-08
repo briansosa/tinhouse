@@ -1,28 +1,28 @@
 import { useState, useEffect } from 'react';
-import { getListValues } from '../../services/api';
+import { getAgencies } from '../../services/api';
 
-const DispositionFilter = ({ onChange, initialValues = [] }) => {
-    const [dispositionOptions, setDispositionOptions] = useState([]);
+const AgencyFilter = ({ onChange, initialValues = [] }) => {
+    const [agencyOptions, setAgencyOptions] = useState([]);
     const [selectedValues, setSelectedValues] = useState(initialValues);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        const fetchDispositionOptions = async () => {
+        const fetchAgencyOptions = async () => {
             try {
                 setLoading(true);
-                const data = await getListValues('disposicion');
-                setDispositionOptions(data);
+                const data = await getAgencies();
+                setAgencyOptions(data || []);
                 setError(null);
             } catch (err) {
-                console.error('Error al cargar opciones de disposición:', err);
-                setError('No se pudieron cargar las opciones de disposición');
+                console.error('Error al cargar opciones de inmobiliarias:', err);
+                setError('No se pudieron cargar las opciones de inmobiliarias');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchDispositionOptions();
+        fetchAgencyOptions();
     }, []);
 
     const handleToggleOption = (value) => {
@@ -44,7 +44,7 @@ const DispositionFilter = ({ onChange, initialValues = [] }) => {
     return (
         <div className="p-4 pb-16">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="text-white font-semibold text-lg">Disposición</h3>
+                <h3 className="text-white font-semibold text-lg">Inmobiliaria</h3>
                 <button
                     onClick={handleReset}
                     className="text-xs text-gray-400 hover:text-gray-300"
@@ -62,23 +62,23 @@ const DispositionFilter = ({ onChange, initialValues = [] }) => {
                     <div className="p-4 text-center">
                         <p className="text-red-500">{error}</p>
                     </div>
-                ) : dispositionOptions.length === 0 ? (
+                ) : agencyOptions.length === 0 ? (
                     <div className="text-center text-gray-400 py-8">
-                        No hay opciones disponibles
+                        No hay inmobiliarias disponibles
                     </div>
                 ) : (
-                    dispositionOptions.map((option) => (
-                        <div key={option.id} className="flex items-center">
+                    agencyOptions.map((agency) => (
+                        <div key={agency.id} className="flex items-center">
                             <button
-                                onClick={() => handleToggleOption(option.value)}
+                                onClick={() => handleToggleOption(agency.id)}
                                 className={`flex-1 p-3 rounded-lg flex justify-between items-center ${
-                                    selectedValues.includes(option.value)
+                                    selectedValues.includes(agency.id)
                                         ? 'bg-blue-600 text-white'
                                         : 'bg-gray-700 text-gray-300'
                                 }`}
                             >
-                                <span>{option.display_name}</span>
-                                {selectedValues.includes(option.value) && (
+                                <span>{agency.name}</span>
+                                {selectedValues.includes(agency.id) && (
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
@@ -92,4 +92,4 @@ const DispositionFilter = ({ onChange, initialValues = [] }) => {
     );
 };
 
-export default DispositionFilter; 
+export default AgencyFilter; 
