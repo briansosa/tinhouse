@@ -986,6 +986,16 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		conditions = append(conditions, fmt.Sprintf("p.condicion IN (%s)", strings.Join(placeholders, ",")))
 	}
 
+	// Filtro por tipo de operación
+	if filter.OperationType != nil && len(filter.OperationType) > 0 {
+		placeholders := make([]string, len(filter.OperationType))
+		for i, opType := range filter.OperationType {
+			placeholders[i] = "?"
+			args = append(args, opType)
+		}
+		conditions = append(conditions, fmt.Sprintf("p.operacion IN (%s)", strings.Join(placeholders, ",")))
+	}
+
 	return conditions, args
 }
 

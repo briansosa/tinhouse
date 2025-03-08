@@ -212,6 +212,11 @@ const convertFilters = (filters) => {
     backendFilters.condition = filters.condition.join(',');
   }
 
+  // Convertir tipo de operación
+  if (filters.operationType && filters.operationType.length > 0) {
+    backendFilters.operation_type = filters.operationType.join(',');
+  }
+
   return backendFilters;
 };
 

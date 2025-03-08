@@ -11,6 +11,7 @@ import DispositionFilter from '../components/Filters/DispositionFilter';
 import PropertyTypeFilter from '../components/Filters/PropertyTypeFilter';
 import OrientationFilter from '../components/Filters/OrientationFilter';
 import ConditionFilter from '../components/Filters/ConditionFilter';
+import OperationTypeFilter from '../components/Filters/OperationTypeFilter';
 import { getPropertyTypes } from '../services/api';
 
 export default function Settings({ setShowNavBar }) {
@@ -41,7 +42,8 @@ export default function Settings({ setShowNavBar }) {
             antiquity: null,
             disposition: [],
             orientation: [],
-            condition: []
+            condition: [],
+            operationType: []
         };
         
         if (savedFilters) {
@@ -86,6 +88,7 @@ export default function Settings({ setShowNavBar }) {
     const [showThemeDrawer, setShowThemeDrawer] = useState(false);
     const [showOrientationDrawer, setShowOrientationDrawer] = useState(false);
     const [showConditionDrawer, setShowConditionDrawer] = useState(false);
+    const [showOperationTypeDrawer, setShowOperationTypeDrawer] = useState(false);
 
     const [propertyTypeLabels, setPropertyTypeLabels] = useState({});
 
@@ -204,7 +207,8 @@ export default function Settings({ setShowNavBar }) {
             antiquity: null,
             disposition: [],
             orientation: [],
-            condition: []
+            condition: [],
+            operationType: []
         };
         setFilters(defaultFilters);
         localStorage.setItem('globalFilters', JSON.stringify(defaultFilters));
@@ -389,6 +393,20 @@ export default function Settings({ setShowNavBar }) {
                     <span className="text-gray-300 dark:text-gray-300">Condición</span>
                     <div className="flex items-center">
                         <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.condition && filters.condition.length ? `${filters.condition.length} seleccionados` : 'Todas'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {/* Tipo de Operación */}
+                <button 
+                    onClick={() => setShowOperationTypeDrawer(true)}
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-300 dark:text-gray-300">Tipo de Operación</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.operationType && filters.operationType.length ? `${filters.operationType.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -595,6 +613,21 @@ export default function Settings({ setShowNavBar }) {
                         onChange={(values) => setFilters(prev => ({
                             ...prev,
                             orientation: values
+                        }))}
+                    />
+                }
+            />
+
+            <FilterDrawer 
+                isOpen={showOperationTypeDrawer}
+                onClose={() => setShowOperationTypeDrawer(false)}
+                title="TIPO DE OPERACIÓN"
+                customContent={
+                    <OperationTypeFilter
+                        initialValues={filters.operationType || []}
+                        onChange={(values) => setFilters(prev => ({
+                            ...prev,
+                            operationType: values
                         }))}
                     />
                 }
