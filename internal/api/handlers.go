@@ -690,6 +690,11 @@ func parseFilterFromQueryParams(r *http.Request) (*db.PropertyFilter, error) {
 		filter.OperationType = strings.Split(operationType, ",")
 	}
 
+	// Situación
+	if situation := r.URL.Query().Get("situation"); situation != "" {
+		filter.Situation = strings.Split(situation, ",")
+	}
+
 	// Solo con notas
 	if showOnlyWithNotes := r.URL.Query().Get("show_only_with_notes"); showOnlyWithNotes == "true" {
 		filter.ShowOnlyWithNotes = true

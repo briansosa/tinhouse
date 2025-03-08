@@ -127,6 +127,7 @@ type PropertyFilter struct {
 	Orientation       []string `json:"orientation"`    // Orientación de la propiedad
 	Condition         []string `json:"condition"`      // Condición de la propiedad
 	OperationType     []string `json:"operation_type"` // Tipo de operación de la propiedad
+	Situation         []string `json:"situation"`      // Situación de la propiedad
 	ShowOnlyWithNotes bool     `json:"show_only_with_notes"`
 	ShowOnlyFavorites bool     `json:"show_only_favorites"`
 }

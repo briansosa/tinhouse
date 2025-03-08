@@ -12,6 +12,7 @@ import PropertyTypeFilter from '../components/Filters/PropertyTypeFilter';
 import OrientationFilter from '../components/Filters/OrientationFilter';
 import ConditionFilter from '../components/Filters/ConditionFilter';
 import OperationTypeFilter from '../components/Filters/OperationTypeFilter';
+import SituationFilter from '../components/Filters/SituationFilter';
 import { getPropertyTypes } from '../services/api';
 
 export default function Settings({ setShowNavBar }) {
@@ -43,7 +44,8 @@ export default function Settings({ setShowNavBar }) {
             disposition: [],
             orientation: [],
             condition: [],
-            operationType: []
+            operationType: [],
+            situation: []
         };
         
         if (savedFilters) {
@@ -89,6 +91,7 @@ export default function Settings({ setShowNavBar }) {
     const [showOrientationDrawer, setShowOrientationDrawer] = useState(false);
     const [showConditionDrawer, setShowConditionDrawer] = useState(false);
     const [showOperationTypeDrawer, setShowOperationTypeDrawer] = useState(false);
+    const [showSituationDrawer, setShowSituationDrawer] = useState(false);
 
     const [propertyTypeLabels, setPropertyTypeLabels] = useState({});
 
@@ -208,7 +211,8 @@ export default function Settings({ setShowNavBar }) {
             disposition: [],
             orientation: [],
             condition: [],
-            operationType: []
+            operationType: [],
+            situation: []
         };
         setFilters(defaultFilters);
         localStorage.setItem('globalFilters', JSON.stringify(defaultFilters));
@@ -407,6 +411,20 @@ export default function Settings({ setShowNavBar }) {
                     <span className="text-gray-300 dark:text-gray-300">Tipo de Operación</span>
                     <div className="flex items-center">
                         <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.operationType && filters.operationType.length ? `${filters.operationType.length} seleccionados` : 'Todas'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {/* Situación */}
+                <button 
+                    onClick={() => setShowSituationDrawer(true)}
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-300 dark:text-gray-300">Situación</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.situation && filters.situation.length ? `${filters.situation.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -628,6 +646,21 @@ export default function Settings({ setShowNavBar }) {
                         onChange={(values) => setFilters(prev => ({
                             ...prev,
                             operationType: values
+                        }))}
+                    />
+                }
+            />
+
+            <FilterDrawer 
+                isOpen={showSituationDrawer}
+                onClose={() => setShowSituationDrawer(false)}
+                title="SITUACIÓN"
+                customContent={
+                    <SituationFilter
+                        initialValues={filters.situation || []}
+                        onChange={(values) => setFilters(prev => ({
+                            ...prev,
+                            situation: values
                         }))}
                     />
                 }

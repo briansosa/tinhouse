@@ -217,6 +217,11 @@ const convertFilters = (filters) => {
     backendFilters.operation_type = filters.operationType.join(',');
   }
 
+  // Convertir situación
+  if (filters.situation && filters.situation.length > 0) {
+    backendFilters.situation = filters.situation.join(',');
+  }
+
   return backendFilters;
 };
 

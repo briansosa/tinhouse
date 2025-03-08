@@ -11,6 +11,7 @@ import DispositionFilter from './DispositionFilter';
 import OrientationFilter from './OrientationFilter';
 import ConditionFilter from './ConditionFilter';
 import OperationTypeFilter from './OperationTypeFilter';
+import SituationFilter from './SituationFilter';
 import FilterChips from './FilterChips';
 import PropertyTypeFilter from './PropertyTypeFilter';
 import { getPropertyTypes } from '../../services/api';
@@ -40,7 +41,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
         disposition: [],
         orientation: [],
         condition: [],
-        operationType: []
+        operationType: [],
+        situation: []
     });
 
     const [propertyTypeLabels, setPropertyTypeLabels] = useState({});
@@ -56,6 +58,7 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
     const [showOrientationDrawer, setShowOrientationDrawer] = useState(false);
     const [showConditionDrawer, setShowConditionDrawer] = useState(false);
     const [showOperationTypeDrawer, setShowOperationTypeDrawer] = useState(false);
+    const [showSituationDrawer, setShowSituationDrawer] = useState(false);
 
     // Cargar tipos de propiedad para mostrar etiquetas correctas
     useEffect(() => {
@@ -182,7 +185,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             disposition: [],
             orientation: [],
             condition: [],
-            operationType: []
+            operationType: [],
+            situation: []
         });
     };
 
@@ -206,7 +210,8 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
             (filters.disposition && filters.disposition.length > 0) ||
             (filters.orientation && filters.orientation.length > 0) ||
             (filters.condition && filters.condition.length > 0) ||
-            (filters.operationType && filters.operationType.length > 0)
+            (filters.operationType && filters.operationType.length > 0) ||
+            (filters.situation && filters.situation.length > 0)
         );
     };
 
@@ -408,6 +413,20 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                     <span className="text-gray-200 dark:text-gray-200">Tipo de Operación</span>
                     <div className="flex items-center">
                         <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.operationType && filters.operationType.length ? `${filters.operationType.length} seleccionados` : 'Todas'}</span>
+                        <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </div>
+                </button>
+
+                {/* Situación */}
+                <button 
+                    onClick={() => setShowSituationDrawer(true)}
+                    className="w-full p-4 bg-gray-800 dark:bg-gray-800 rounded-xl flex justify-between items-center"
+                >
+                    <span className="text-gray-200 dark:text-gray-200">Situación</span>
+                    <div className="flex items-center">
+                        <span className="text-gray-400 dark:text-gray-400 mr-2">{filters.situation && filters.situation.length ? `${filters.situation.length} seleccionados` : 'Todas'}</span>
                         <svg className="w-5 h-5 text-gray-400 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                         </svg>
@@ -638,6 +657,21 @@ const Filters = ({ onClose, onApplyFilters, initialFilters }) => {
                         onChange={(values) => setFilters(prev => ({
                             ...prev,
                             operationType: values
+                        }))}
+                    />
+                }
+            />
+
+            <FilterDrawer 
+                isOpen={showSituationDrawer}
+                onClose={() => setShowSituationDrawer(false)}
+                title="SITUACIÓN"
+                customContent={
+                    <SituationFilter
+                        initialValues={filters.situation}
+                        onChange={(values) => setFilters(prev => ({
+                            ...prev,
+                            situation: values
                         }))}
                     />
                 }
