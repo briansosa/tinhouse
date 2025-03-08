@@ -125,6 +125,7 @@ type PropertyFilter struct {
 	Antiquity         *int     `json:"antiquity"`
 	Disposition       []string `json:"disposition"` // Disposición de la propiedad
 	Orientation       []string `json:"orientation"` // Orientación de la propiedad
+	Condition         []string `json:"condition"`   // Condición de la propiedad
 	ShowOnlyWithNotes bool     `json:"show_only_with_notes"`
 	ShowOnlyFavorites bool     `json:"show_only_favorites"`
 }

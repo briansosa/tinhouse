@@ -976,6 +976,16 @@ func buildFilterConditions(filter *PropertyFilter) ([]string, []interface{}) {
 		conditions = append(conditions, fmt.Sprintf("p.orientacion IN (%s)", strings.Join(placeholders, ",")))
 	}
 
+	// Filtro por condición
+	if filter.Condition != nil && len(filter.Condition) > 0 {
+		placeholders := make([]string, len(filter.Condition))
+		for i, cond := range filter.Condition {
+			placeholders[i] = "?"
+			args = append(args, cond)
+		}
+		conditions = append(conditions, fmt.Sprintf("p.condicion IN (%s)", strings.Join(placeholders, ",")))
+	}
+
 	return conditions, args
 }
 
