@@ -260,6 +260,7 @@ export const getListValues = (listName) => {
 export const getAgencies = () => {
   return api.get('/agencies')
     .then(response => {
+      console.log('Respuesta de la API de inmobiliarias:', response);
       if (response && response.data) {
         return response.data;
       }

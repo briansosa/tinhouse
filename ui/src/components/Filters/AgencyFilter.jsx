@@ -32,6 +32,7 @@ const AgencyFilter = ({ onChange, initialValues = [] }) => {
         } else {
             newValues = [...selectedValues, value];
         }
+                
         setSelectedValues(newValues);
         onChange(newValues);
     };

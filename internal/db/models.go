@@ -4,16 +4,16 @@ import "time"
 
 // Inmobiliaria representa una inmobiliaria en la base de datos
 type Inmobiliaria struct {
-	ID        int64     `db:"id"`
-	Nombre    string    `db:"nombre"`
-	URL       string    `db:"url"`
-	Sistema   string    `db:"sistema"`
-	Zona      string    `db:"zona"`
-	Rating    float64   `db:"rating"`
-	Direccion string    `db:"direccion"`
-	Telefono  string    `db:"telefono"`
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	ID        int64     `db:"id" json:"id"`
+	Nombre    string    `db:"nombre" json:"name"`
+	URL       string    `db:"url" json:"url"`
+	Sistema   string    `db:"sistema" json:"system"`
+	Zona      string    `db:"zona" json:"zone"`
+	Rating    float64   `db:"rating" json:"rating"`
+	Direccion string    `db:"direccion" json:"address"`
+	Telefono  string    `db:"telefono" json:"phone"`
+	CreatedAt time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt time.Time `db:"updated_at" json:"updatedAt"`
 }
 
 // Busqueda representa una búsqueda realizada
@@ -168,10 +168,10 @@ type List struct {
 // Valor de una lista
 type ListValue struct {
 	ID          int64     `db:"id" json:"id"`
-	ListID      int64     `db:"list_id" json:"list_id"`
+	ListID      int64     `db:"list_id" json:"listId"`
 	Value       string    `db:"value" json:"value"`
-	DisplayName string    `db:"display_name" json:"display_name"`
-	SortOrder   int       `db:"sort_order" json:"sort_order"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
+	DisplayName string    `db:"display_name" json:"displayName"`
+	SortOrder   int       `db:"sort_order" json:"sortOrder"`
+	CreatedAt   time.Time `db:"created_at" json:"createdAt"`
+	UpdatedAt   time.Time `db:"updated_at" json:"updatedAt"`
 }
